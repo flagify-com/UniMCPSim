@@ -7,9 +7,10 @@ UniMCPSim是一个通用的MCP（Model Context Protocol）模拟器，可以动�
 - **通用MCP模拟器**：基于FastMCP框架，支持标准MCP协议
 - **多产品支持**：预置9个常用产品模拟器，涵盖安全、通讯、网络、工单等领域
 - **AI增强响应**：集成OpenAI API，生成真实的模拟响应数据
+- **智能动作生成**：基于数据库提示词模板，AI自动生成API动作定义
 - **Web管理界面**：提供完整的Web后台管理系统
 - **Token权限管理**：支持Token认证和细粒度权限控制
-- **模板驱动**：基于JSON/YAML模板快速创建新的应用模拟器
+- **模板驱动**：支持自定义提示词模板，快速创建新的应用模拟器
 
 ## 📁 项目结构
 
@@ -64,17 +65,20 @@ pip install -r requirements.txt
 
 ### 2. 环境变量配置
 
-创建`.env`文件并配置必要的环境变量：
+**重要！** 创建`.env`文件并配置必要的环境变量（必需步骤）：
 
 ```bash
-# OpenAI API配置（可选，用于AI增强响应）
+# OpenAI API配置（必需，用于AI驱动的动作生成）
 OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_API_BASE_URL=https://api.openai.com/v1
 
 # 如果使用代理，请取消设置
 unset HTTPS_PROXY
 unset HTTP_PROXY
 ```
+
+⚠️ **注意**：从v2.0开始，系统移除了静态回退方案，必须配置OpenAI API才能使用动作生成功能。系统会使用数据库中的提示词模板自动生成智能化的API动作定义。
 
 ### 3. 启动服务
 

@@ -19,7 +19,26 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 第二步：一键启动服务
+### ⚠️ 重要：配置.env文件
+
+在启动前**必须**创建`.env`文件，这是必需步骤：
+
+```bash
+# 创建.env文件
+cat > .env << 'EOF'
+# OpenAI API配置（必需）
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4o-mini
+OPENAI_API_BASE_URL=https://api.openai.com/v1
+EOF
+```
+
+**重要说明**：
+- 请将`your_openai_api_key_here`替换为您的真实OpenAI API密钥
+- 从v2.0开始，系统使用AI智能生成动作定义，必须配置OpenAI API
+- 如果没有配置，新建应用功能将无法正常工作
+
+### 第三步：一键启动服务
 
 ```bash
 # 一键启动所有服务
@@ -46,7 +65,7 @@ MCP服务器: http://localhost:8080/mcp
 按 Ctrl+C 停止服务
 ```
 
-### 第三步：快速功能验证
+### 第四步：快速功能验证
 
 #### 1. 测试核心功能
 

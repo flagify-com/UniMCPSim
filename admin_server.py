@@ -8,8 +8,12 @@ import json
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
+from dotenv import load_dotenv
 from models import db_manager, User, Token, Application, AppPermission, AuditLog, PromptTemplate
 from auth_utils import hash_password, verify_password, login_required, admin_required
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 app.secret_key = os.urandom(32)
@@ -73,6 +77,12 @@ def logs_page():
 def prompts_page():
     """提示词管理页面"""
     return render_template('prompts.html', username=session.get('username'))
+
+@app.route('/admin/change-password')
+@login_required
+def change_password_page():
+    """修改密码页面"""
+    return render_template('change_password.html', username=session.get('username'))
 
 @app.route('/admin/logout')
 def logout():
@@ -369,29 +379,41 @@ def check_mcp_status():
     try:
         # 检查本地MCP服务器状态
         response = requests.get('http://localhost:8080/health', timeout=3)
+        print(f"MCP health check: status={response.status_code}")
         if response.status_code == 200:
+            health_data = response.json()
+            print(f"MCP health data: {health_data}")
             return jsonify({
                 'status': 'running',
                 'message': '运行中',
-                'data': response.json()
+                'data': health_data
             })
         else:
+            print(f"MCP server returned status {response.status_code}")
             return jsonify({
                 'status': 'error',
                 'message': '已停止',
                 'error': f'HTTP {response.status_code}'
-            })
+            }), 503
     except requests.RequestException as e:
+        print(f"MCP health check failed: {e}")
         return jsonify({
             'status': 'error',
             'message': '已停止',
             'error': str(e)
-        })
+        }), 503
+    except Exception as e:
+        print(f"Unexpected error in MCP health check: {e}")
+        return jsonify({
+            'status': 'error',
+            'message': '检查失败',
+            'error': str(e)
+        }), 500
 
 @app.route('/admin/api/generate-actions', methods=['POST'])
 @login_required
 def generate_actions():
-    """使用AI生成动作定义"""
+    """使用AI生成动作定义（强制使用提示词模板）"""
     try:
         data = request.json
         category = data.get('category', '')
@@ -400,25 +422,13 @@ def generate_actions():
         description = data.get('description', '')
         prompt = data.get('prompt', '')
 
-        # 构建系统提示词
-        # 调用本地AI服务生成动作定义
-        try:
-            # 这里使用一个简化的生成逻辑，您可以后续集成实际的AI服务
-            generated_actions = generate_actions_with_ai(category, name, display_name, description, prompt)
+        # 强制使用数据库中的提示词模板调用AI服务
+        generated_actions = generate_actions_with_ai(category, name, display_name, description, prompt)
 
-            return jsonify({
-                'success': True,
-                'actions': generated_actions
-            })
-
-        except Exception as ai_error:
-            # 如果AI服务不可用，返回基于模板的生成结果
-            fallback_actions = generate_fallback_actions(category, name, prompt)
-            return jsonify({
-                'success': True,
-                'actions': fallback_actions,
-                'note': '使用模板生成，建议根据实际需求调整'
-            })
+        return jsonify({
+            'success': True,
+            'actions': generated_actions
+        })
 
     except Exception as e:
         return jsonify({
@@ -447,8 +457,8 @@ def generate_actions_with_ai(category, name, display_name, description, prompt):
             'description': description
         }
 
-        # 使用变量替换生成最终的system prompt
-        system_prompt = prompt_template.template.format(**variables)
+        # 使用变量替换生成最终的user prompt
+        user_prompt = prompt_template.template.format(**variables)
 
         # 从环境变量读取OpenAI配置
         api_key = os.getenv('OPENAI_API_KEY')
@@ -468,8 +478,8 @@ def generate_actions_with_ai(category, name, display_name, description, prompt):
         response = client.chat.completions.create(
             model=model,
             messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
+                {"role": "system", "content": "你是一个专业的API动作定义生成器，返回符合规范的JSON格式数据。"},
+                {"role": "user", "content": user_prompt}
             ],
             temperature=0.7,
             max_tokens=2000
@@ -480,366 +490,30 @@ def generate_actions_with_ai(category, name, display_name, description, prompt):
 
         # 尝试解析JSON
         try:
-            # 移除可能的markdown代码块标记
-            if content.startswith('```json'):
-                content = content[7:]
-            if content.startswith('```'):
-                content = content[3:]
-            if content.endswith('```'):
-                content = content[:-3]
-
-            actions = json.loads(content.strip())
+            actions = json.loads(content)
             return actions
-        except json.JSONDecodeError as e:
-            print(f"JSON解析失败: {e}")
-            print(f"原始内容: {content}")
-            # 如果JSON解析失败，抛出异常让系统使用fallback
-            raise Exception(f"AI返回的JSON格式不正确: {e}")
+        except json.JSONDecodeError:
+            # 如果解析失败，清理并重试
+            content = content.strip()
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
+            try:
+                actions = json.loads(content.strip())
+                return actions
+            except json.JSONDecodeError as e:
+                print(f"JSON解析失败: {e}")
+                print(f"原始内容: {content}")
+                raise Exception(f"AI返回的JSON格式不正确: {e}")
 
     except Exception as e:
         print(f"AI生成失败: {e}")
         # 抛出异常让系统使用fallback逻辑
         raise e
 
-def generate_fallback_actions(category, name, prompt):
-    """生成基于模板的动作定义"""
-    import re
-
-    # 解析用户输入的工具描述
-    lines = prompt.strip().split('\n')
-    actions = []
-
-    for i, line in enumerate(lines):
-        if not line.strip():
-            continue
-
-        # 尝试解析"工具X: 描述"格式
-        match = re.match(r'工具\d+[：:]\s*(.*)', line.strip())
-        if match:
-            action_desc = match.group(1).strip()
-        else:
-            action_desc = line.strip()
-
-        # 智能解析生成更合理的动作名称和参数
-        action = parse_action_intelligently(action_desc, i+1)
-        if action:
-            actions.append(action)
-
-    # 如果没有解析到任何动作，提供默认模板
-    if not actions:
-        actions = [{
-            "name": "default_action",
-            "display_name": "默认动作",
-            "description": "根据应用需求自定义的动作",
-            "parameters": [
-                {
-                    "key": "input",
-                    "type": "String",
-                    "required": True,
-                    "description": "输入参数"
-                }
-            ]
-        }]
-
-    return actions
-
-def parse_action_intelligently(action_desc, index):
-    """智能解析动作描述生成合理的参数"""
-    action_desc_lower = action_desc.lower()
-
-    # 防火墙相关功能
-    if '防火墙' in action_desc and '健康' in action_desc and '状态' in action_desc:
-        return {
-            "name": "check_firewall_health",
-            "display_name": "查询防火墙健康状态",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "check_type",
-                    "type": "String",
-                    "required": False,
-                    "description": "检查类型(basic/detailed)"
-                }
-            ]
-        }
-    elif ('封禁' in action_desc or '屏蔽' in action_desc) and 'ip' in action_desc_lower:
-        return {
-            "name": "block_ip_address",
-            "display_name": "封禁IP地址",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "ip_address",
-                    "type": "String",
-                    "required": True,
-                    "description": "要封禁的IP地址"
-                },
-                {
-                    "key": "duration",
-                    "type": "Integer",
-                    "required": False,
-                    "description": "封禁时长(分钟，0表示永久)"
-                },
-                {
-                    "key": "reason",
-                    "type": "String",
-                    "required": False,
-                    "description": "封禁原因"
-                }
-            ]
-        }
-    elif ('解封' in action_desc or '解除' in action_desc) and 'ip' in action_desc_lower:
-        return {
-            "name": "unblock_ip_address",
-            "display_name": "解封IP地址",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "ip_address",
-                    "type": "String",
-                    "required": True,
-                    "description": "要解封的IP地址"
-                }
-            ]
-        }
-    elif '查询' in action_desc and 'ip' in action_desc_lower and ('封禁' in action_desc or '状态' in action_desc):
-        return {
-            "name": "query_ip_status",
-            "display_name": "查询IP封禁状态",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "ip_address",
-                    "type": "String",
-                    "required": True,
-                    "description": "要查询的IP地址"
-                }
-            ]
-        }
-
-    # 消息发送相关
-    elif '发送' in action_desc and '消息' in action_desc:
-        if '群' in action_desc:
-            return {
-                "name": "send_group_message",
-                "display_name": "发送群消息",
-                "description": action_desc,
-                "parameters": [
-                    {
-                        "key": "group_id",
-                        "type": "String",
-                        "required": True,
-                        "description": "群聊ID或群名称"
-                    },
-                    {
-                        "key": "message_content",
-                        "type": "String",
-                        "required": True,
-                        "description": "消息内容"
-                    },
-                    {
-                        "key": "at_users",
-                        "type": "Array",
-                        "required": False,
-                        "description": "@用户列表"
-                    }
-                ]
-            }
-        else:
-            return {
-                "name": "send_private_message",
-                "display_name": "发送私人消息",
-                "description": action_desc,
-                "parameters": [
-                    {
-                        "key": "recipient",
-                        "type": "String",
-                        "required": True,
-                        "description": "接收者用户名或ID"
-                    },
-                    {
-                        "key": "message_content",
-                        "type": "String",
-                        "required": True,
-                        "description": "消息内容"
-                    }
-                ]
-            }
-    elif '发送' in action_desc and '图片' in action_desc:
-        return {
-            "name": "send_image_message",
-            "display_name": "发送图片消息",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "recipient",
-                    "type": "String",
-                    "required": True,
-                    "description": "接收者用户名或群ID"
-                },
-                {
-                    "key": "image_path",
-                    "type": "String",
-                    "required": True,
-                    "description": "图片文件路径或URL"
-                },
-                {
-                    "key": "caption",
-                    "type": "String",
-                    "required": False,
-                    "description": "图片说明文字"
-                }
-            ]
-        }
-
-    # 查询相关
-    elif '查询' in action_desc and ('列表' in action_desc or '清单' in action_desc):
-        return {
-            "name": "query_data_list",
-            "display_name": "查询数据列表",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "list_type",
-                    "type": "String",
-                    "required": True,
-                    "description": "列表类型"
-                },
-                {
-                    "key": "filter_criteria",
-                    "type": "Object",
-                    "required": False,
-                    "description": "过滤条件"
-                },
-                {
-                    "key": "page_size",
-                    "type": "Integer",
-                    "required": False,
-                    "description": "每页显示数量"
-                }
-            ]
-        }
-    elif '查询' in action_desc:
-        return {
-            "name": "query_information",
-            "display_name": "查询信息",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "query_keyword",
-                    "type": "String",
-                    "required": True,
-                    "description": "查询关键词"
-                },
-                {
-                    "key": "search_scope",
-                    "type": "String",
-                    "required": False,
-                    "description": "搜索范围"
-                }
-            ]
-        }
-
-    # 创建相关
-    elif '创建' in action_desc or '新建' in action_desc:
-        return {
-            "name": "create_new_item",
-            "display_name": "创建新项目",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "item_name",
-                    "type": "String",
-                    "required": True,
-                    "description": "项目名称"
-                },
-                {
-                    "key": "item_description",
-                    "type": "String",
-                    "required": False,
-                    "description": "项目描述"
-                },
-                {
-                    "key": "item_config",
-                    "type": "Object",
-                    "required": False,
-                    "description": "项目配置参数"
-                }
-            ]
-        }
-
-    # 删除相关
-    elif '删除' in action_desc or '移除' in action_desc:
-        return {
-            "name": "delete_item",
-            "display_name": "删除项目",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "item_id",
-                    "type": "String",
-                    "required": True,
-                    "description": "要删除的项目ID"
-                },
-                {
-                    "key": "confirm_delete",
-                    "type": "Boolean",
-                    "required": False,
-                    "description": "确认删除"
-                }
-            ]
-        }
-
-    # 更新/修改相关
-    elif '更新' in action_desc or '修改' in action_desc or '编辑' in action_desc:
-        return {
-            "name": "update_item",
-            "display_name": "更新项目",
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "item_id",
-                    "type": "String",
-                    "required": True,
-                    "description": "要更新的项目ID"
-                },
-                {
-                    "key": "update_data",
-                    "type": "Object",
-                    "required": True,
-                    "description": "更新的数据内容"
-                }
-            ]
-        }
-
-    # 通用动作（当无法智能识别时）
-    else:
-        # 从描述中提取关键动词作为动作名
-        verbs = ['执行', '运行', '处理', '操作', '管理', '控制', '监控', '分析']
-        action_verb = next((verb for verb in verbs if verb in action_desc), '执行')
-
-        # 生成简洁的显示名称
-        display_name = action_desc[:15] + "..." if len(action_desc) > 15 else action_desc
-
-        return {
-            "name": f"custom_action_{index}",
-            "display_name": display_name,
-            "description": action_desc,
-            "parameters": [
-                {
-                    "key": "action_input",
-                    "type": "String",
-                    "required": True,
-                    "description": "操作输入参数"
-                },
-                {
-                    "key": "action_options",
-                    "type": "Object",
-                    "required": False,
-                    "description": "操作选项配置"
-                }
-            ]
-        }
 
 # 默认路由重定向
 @app.route('/')
@@ -964,6 +638,43 @@ def api_delete_prompt(name):
             return jsonify({'message': 'Prompt template deleted successfully'})
         else:
             return jsonify({'error': 'Prompt template not found'}), 404
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/admin/api/change-password', methods=['POST'])
+@login_required
+def api_change_password():
+    """修改管理员密码"""
+    try:
+        data = request.get_json()
+        current_password = data.get('current_password', '')
+        new_password = data.get('new_password', '')
+        confirm_password = data.get('confirm_password', '')
+
+        # 验证参数
+        if not current_password or not new_password or not confirm_password:
+            return jsonify({'error': '所有字段都是必填的'}), 400
+
+        if new_password != confirm_password:
+            return jsonify({'error': '新密码与确认密码不一致'}), 400
+
+        if len(new_password) < 6:
+            return jsonify({'error': '新密码长度不能少于6位'}), 400
+
+        # 验证当前密码
+        username = session.get('username')
+        if not db_manager.verify_user_password(username, current_password):
+            return jsonify({'error': '当前密码不正确'}), 400
+
+        # 修改密码
+        success = db_manager.change_user_password(username, new_password)
+        if success:
+            # 清除会话，强制重新登录
+            session.clear()
+            return jsonify({'message': '密码修改成功', 'redirect': '/admin/login'})
+        else:
+            return jsonify({'error': '密码修改失败'}), 500
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

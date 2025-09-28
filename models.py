@@ -294,6 +294,39 @@ class DatabaseManager:
         finally:
             session.close()
 
+    def change_user_password(self, username: str, new_password: str) -> bool:
+        """修改用户密码"""
+        from auth_utils import hash_password
+
+        session = self.get_session()
+        try:
+            user = session.query(User).filter_by(username=username).first()
+            if user:
+                user.password_hash = hash_password(new_password)
+                user.updated_at = datetime.utcnow()
+                session.commit()
+                return True
+            return False
+        finally:
+            session.close()
+
+    def verify_user_password(self, username: str, password: str) -> bool:
+        """验证用户密码"""
+        from auth_utils import verify_password
+
+        session = self.get_session()
+        try:
+            user = session.query(User).filter_by(username=username).first()
+            if user:
+                return verify_password(password, user.password_hash)
+            return False
+        finally:
+            session.close()
+
+    def reset_admin_password(self, new_password: str = 'admin123') -> bool:
+        """重置管理员密码"""
+        return self.change_user_password('admin', new_password)
+
     def create_default_prompts(self):
         """创建默认提示词模板"""
         session = self.get_session()
