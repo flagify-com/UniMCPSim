@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示词管理 - UniMCPSim</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="d-flex justify-between align-center">
+                <h1>UniMCPSim 管理后台</h1>
+                <div>
+                    <span style="margin-right: 1rem;">欢迎，{{ username }}</span>
+                    <a href="/admin/logout" class="btn btn-secondary btn-sm">退出</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="container">
+            <ul>
+                <li><a href="/admin/">仪表板</a></li>
+                <li><a href="/admin/apps">应用管理</a></li>
+                <li><a href="/admin/tokens">Token管理</a></li>
+                <li><a href="/admin/prompts" class="active">提示词管理</a></li>
+                <li><a href="/admin/logs">操作日志</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        <div class="card">
+            <div class="card-header">
+                <span>提示词模板管理</span>
+            </div>
+
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>名称</th>
+                        <th>显示名称</th>
+                        <th>描述</th>
+                        <th>状态</th>
+                        <th>更新时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="promptsList">
+                    <!-- 动态加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 编辑提示词模态框 -->
+    <div class="modal" id="promptModal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modalTitle">编辑提示词模板</h3>
+            </div>
+
+            <div class="modal-split">
+                <!-- 左侧：基本信息 -->
+                <div>
+                    <form id="promptForm">
+                        <input type="hidden" id="promptId" value="">
+
+                        <div class="form-group">
+                            <label class="form-label">唯一标识名称</label>
+                            <input type="text" id="promptName" class="form-control" placeholder="如: action_generation" required>
+                            <small class="text-muted">用于系统内部调用，不可重复</small>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">显示名称</label>
+                            <input type="text" id="promptDisplayName" class="form-control" placeholder="如: 动作生成提示词" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">描述</label>
+                            <textarea id="promptDescription" class="form-control" rows="3" placeholder="描述此提示词的用途..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">可用变量</label>
+                            <div id="variablesList">
+                                <!-- 只读显示变量 -->
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <button type="submit" class="btn btn-primary">保存</button>
+                            <button type="button" class="btn btn-secondary" onclick="hideModal()">取消</button>
+                        </div>
+                    </form>
+
+                    <!-- 变量示例 -->
+                    <div class="card mt-3">
+                        <div class="card-header">变量使用示例</div>
+                        <div id="variableExamples" class="p-2">
+                            <p>在提示词模板中使用大括号包围变量名，例如：</p>
+                            <code>{prompt}</code> - 用户输入的需求描述<br>
+                            <code>{app_name}</code> - 应用名称<br>
+                            <code>{action}</code> - 动作名称
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：提示词编辑器 -->
+                <div>
+                    <label class="form-label">提示词模板内容</label>
+                    <div class="monaco-editor-container" id="promptEditorContainer">
+                        <textarea id="promptTemplate" class="json-editor" placeholder="输入提示词模板内容，使用 {变量名} 的格式引用变量..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>版权 2025 雾帜智能</p>
+    </footer>
+
+    <script>
+        let currentPromptId = null;
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPrompts();
+        });
+
+        // 加载提示词列表
+        async function loadPrompts() {
+            try {
+                const response = await fetch('/admin/api/prompts');
+                const prompts = await response.json();
+                const tbody = document.getElementById('promptsList');
+
+                tbody.innerHTML = prompts.map(prompt => `
+                    <tr>
+                        <td><code>${prompt.name}</code></td>
+                        <td>${prompt.display_name}</td>
+                        <td>${prompt.description || '无描述'}</td>
+                        <td>
+                            <span class="badge ${prompt.enabled ? 'badge-success' : 'badge-danger'}">
+                                ${prompt.enabled ? '启用' : '禁用'}
+                            </span>
+                        </td>
+                        <td>${new Date(prompt.updated_at).toLocaleString()}</td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick="editPrompt('${prompt.name}')">编辑</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load prompts:', error);
+            }
+        }
+
+
+        // 编辑提示词
+        async function editPrompt(name) {
+            try {
+                const response = await fetch(`/admin/api/prompts/${name}`);
+                const prompt = await response.json();
+
+                currentPromptId = prompt.id;
+                document.getElementById('modalTitle').textContent = '编辑提示词模板';
+                document.getElementById('promptId').value = prompt.id;
+                document.getElementById('promptName').value = prompt.name;
+                document.getElementById('promptName').disabled = true;
+                document.getElementById('promptDisplayName').value = prompt.display_name;
+                document.getElementById('promptDescription').value = prompt.description || '';
+                document.getElementById('promptTemplate').value = prompt.template;
+
+                // 加载变量
+                document.getElementById('variablesList').innerHTML = '';
+                if (prompt.variables && prompt.variables.length > 0) {
+                    prompt.variables.forEach(variable => {
+                        addVariable(variable.name, variable.description);
+                    });
+                }
+
+                showModal();
+            } catch (error) {
+                console.error('Failed to load prompt:', error);
+            }
+        }
+
+
+        // 显示变量（只读）
+        function addVariable(name = '', description = '') {
+            const container = document.getElementById('variablesList');
+            const variableDiv = document.createElement('div');
+            variableDiv.className = 'form-group d-flex gap-1 align-center';
+            variableDiv.innerHTML = `
+                <input type="text" class="form-control variable-name" value="${name}" style="flex: 1;" readonly>
+                <input type="text" class="form-control variable-description" value="${description}" style="flex: 2;" readonly>
+            `;
+            container.appendChild(variableDiv);
+            updateVariableExamples();
+        }
+
+
+        // 更新变量示例
+        function updateVariableExamples() {
+            const variables = Array.from(document.querySelectorAll('.variable-name')).map(input => ({
+                name: input.value,
+                description: input.nextElementSibling.value
+            })).filter(v => v.name);
+
+            const examplesDiv = document.getElementById('variableExamples');
+            if (variables.length > 0) {
+                examplesDiv.innerHTML = `
+                    <p>在提示词模板中使用大括号包围变量名，例如：</p>
+                    ${variables.map(v => `<code>{${v.name}}</code> - ${v.description || '无描述'}<br>`).join('')}
+                `;
+            } else {
+                examplesDiv.innerHTML = `
+                    <p>在提示词模板中使用大括号包围变量名，例如：</p>
+                    <code>{prompt}</code> - 用户输入的需求描述<br>
+                    <code>{app_name}</code> - 应用名称<br>
+                    <code>{action}</code> - 动作名称
+                `;
+            }
+        }
+
+        // 提交表单
+        document.getElementById('promptForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const variables = Array.from(document.querySelectorAll('.variable-name')).map(input => ({
+                name: input.value,
+                description: input.nextElementSibling.value
+            })).filter(v => v.name);
+
+            const data = {
+                name: document.getElementById('promptName').value,
+                display_name: document.getElementById('promptDisplayName').value,
+                description: document.getElementById('promptDescription').value,
+                template: document.getElementById('promptTemplate').value,
+                variables: variables
+            };
+
+            try {
+                const response = await fetch('/admin/api/prompts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    hideModal();
+                    loadPrompts();
+                } else {
+                    const error = await response.json();
+                    alert('保存失败: ' + (error.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Failed to save prompt:', error);
+                alert('保存失败');
+            }
+        });
+
+        // 显示模态框
+        function showModal() {
+            document.getElementById('promptModal').classList.add('show');
+        }
+
+        // 隐藏模态框
+        function hideModal() {
+            document.getElementById('promptModal').classList.remove('show');
+        }
+
+        // 变量输入框变化时更新示例
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('variable-name') || e.target.classList.contains('variable-description')) {
+                updateVariableExamples();
+            }
+        });
+    </script>
+</body>
+</html>

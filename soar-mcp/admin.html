@@ -1,0 +1,2516 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SOAR MCP Server 管理后台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body, html {
+            height: 100%;
+            font-family: 'Inter', 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow-x: hidden;
+            color: #333;
+            background: #f8fafc;
+        }
+
+        /* 移除全局header-background类，现在直接在header上使用伪元素 */
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* 移除全局浮动装饰元素，只在header区域保留 */
+        
+        .header {
+            background: transparent;
+            padding: 1rem 2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            position: relative;
+            z-index: 10;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Header需要背景容器 */
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg,
+                #3b82f6 0%,
+                #2563eb 15%,
+                #1d4ed8 30%,
+                #1e40af 45%,
+                #0ea5e9 60%,
+                #06b6d4 75%,
+                #14b8a6 90%,
+                #38bdf8 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            z-index: -1;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(56, 189, 248, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(20, 184, 166, 0.3) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        .header h1 {
+            color: #f8fffe;
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin: 0;
+            text-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+        }
+        
+        .nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-left {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .nav-right {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .nav-item {
+            display: inline-block;
+            color: #e8f5f3;
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            transition: all 0.3s ease;
+            font-weight: 500;
+            font-size: 0.85rem;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-item.active, .nav-item:hover {
+            background: rgba(59, 130, 246, 0.25);
+            color: #f0fdfa;
+            border-color: rgba(56, 189, 248, 0.4);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+        }
+
+        .nav-item.logout {
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #fef2f2;
+        }
+
+        .nav-item.logout:hover {
+            background: rgba(239, 68, 68, 0.25);
+            color: #fef2f2;
+            border-color: rgba(248, 113, 113, 0.5);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+        
+        .container {
+            max-width: 95%;
+            margin: 2rem auto;
+            padding: 0 2rem;
+            background: #f8fafc;
+            min-height: calc(100vh - 200px);
+        }
+        
+        .card {
+            background: #ffffff;
+            border-radius: 20px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-bottom: 2rem;
+            position: relative;
+            color: #334155;
+        }
+
+        @keyframes cardFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #3b82f6, #2563eb, #0ea5e9, #14b8a6, #38bdf8);
+            border-radius: 20px 20px 0 0;
+            z-index: 1;
+        }
+
+        @keyframes borderGlow {
+            0% { opacity: 0.2; }
+            100% { opacity: 0.5; }
+        }
+        
+        .card-header {
+            background: #f8fafc;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .stats {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .stat-item {
+            background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+            color: #eff6ff;
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            min-width: fit-content;
+            white-space: nowrap;
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            box-shadow: 0 2px 8px rgba(20, 184, 166, 0.2);
+            backdrop-filter: blur(5px);
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th {
+            background: #e0f2fe;
+            color: #0369a1;
+            font-weight: 600;
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 2px solid #0ea5e9;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .table td {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
+            vertical-align: middle;
+            color: #1e293b;
+            font-size: 0.9rem;
+        }
+        
+        .table tbody tr:hover {
+            background: #f1f5f9;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 28px;
+        }
+        
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e0);
+            transition: all 0.3s ease;
+            border-radius: 28px;
+            border: 1px solid rgba(203, 213, 224, 0.5);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background: linear-gradient(135deg, #ffffff, #f7fafc);
+            transition: all 0.3s ease;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        input:checked + .slider {
+            background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+            border-color: rgba(20, 184, 166, 0.5);
+            box-shadow: 0 0 0 2px rgba(20, 184, 166, 0.2),
+                        inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        }
+        
+        .category-badge {
+            display: inline-block;
+            background: #e2e8f0;
+            color: #4a5568;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .playbook-id {
+            font-family: 'Monaco', 'Menlo', monospace;
+            color: #805ad5;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .playbook-id:hover {
+            color: #553c9a;
+            text-decoration: underline;
+        }
+        
+        .playbook-display-name {
+            color: #2d3748;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #718096;
+        }
+        
+        .error {
+            background: #fed7d7;
+            color: #c53030;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .success {
+            background: #c6f6d5;
+            color: #2f855a;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        /* Modal 样式 */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+        }
+        
+        .modal-content {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #14b8a6 0%, #0ea5e9 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .close {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+        
+        .close:hover {
+            color: white;
+        }
+        
+        .modal-body {
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 0 0 12px 12px;
+        }
+        
+        .detail-section {
+            margin-bottom: 2rem;
+        }
+        
+        .detail-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            color: #0ea5e9;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+        
+        .detail-value {
+            color: #1f2937;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            font-weight: 500;
+        }
+        
+        .param-item {
+            background: #f7fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .param-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .param-name {
+            font-weight: 600;
+            color: #805ad5;
+            margin-bottom: 0.5rem;
+        }
+        
+        .param-type {
+            display: inline-block;
+            background: #4c51bf;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 0.5rem;
+        }
+        
+        .param-required {
+            color: #e53e3e;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .param-description {
+            color: #718096;
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
+        }
+
+        /* 底部信息样式 */
+        .footer {
+            margin-top: 3rem;
+            padding: 2rem 0;
+            text-align: center;
+            background: transparent;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Footer蓝色背景 */
+        .footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg,
+                #3b82f6 0%,
+                #2563eb 15%,
+                #1d4ed8 30%,
+                #1e40af 45%,
+                #0ea5e9 60%,
+                #06b6d4 75%,
+                #14b8a6 90%,
+                #38bdf8 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            z-index: -1;
+        }
+
+        .footer::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 20% 80%, rgba(56, 189, 248, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 60% 60%, rgba(20, 184, 166, 0.3) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        .footer-content {
+            color: #ffffff;
+            font-size: 0.85rem;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+            position: relative;
+            z-index: 1001;
+            font-weight: 500;
+        }
+
+        .footer-content a {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: 600;
+            margin: 0 0.5rem;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1002;
+            cursor: pointer;
+        }
+
+        .footer-content a:hover {
+            color: #14b8a6;
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+                max-width: 100%;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .card-header {
+                padding: 1rem;
+            }
+            
+            .table th,
+            .table td {
+                padding: 0.75rem 0.5rem;
+            }
+            
+            .stats {
+                flex-wrap: wrap;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 2% auto;
+            }
+            
+            .modal-header {
+                padding: 1rem;
+            }
+            
+            .modal-body {
+                padding: 1rem;
+            }
+        }
+        
+        /* 分页控件样式 */
+        .pagination-container {
+            margin: 1rem 0 0 0;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0.75rem;
+            background: transparent;
+            gap: 1rem;
+        }
+        
+        .pagination-info {
+            font-size: 0.9rem;
+            color: #64748b;
+        }
+        
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .pagination-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #374151;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .pagination-btn:hover:not(:disabled) {
+            background: #f3f4f6;
+            border-color: #3b82f6;
+            color: #3b82f6;
+        }
+
+        .pagination-btn:disabled {
+            background: #f9fafb;
+            color: #9ca3af;
+            cursor: not-allowed;
+            border-color: #e5e7eb;
+        }
+        
+        .page-numbers {
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .page-number {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #ddd;
+            background: white;
+            color: #333;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            min-width: 36px;
+            text-align: center;
+        }
+        
+        .page-number:hover {
+            background: #f8f9fa;
+            border-color: #007bff;
+            color: #007bff;
+        }
+        
+        .page-number.active {
+            background: #007bff;
+            border-color: #007bff;
+            color: white;
+        }
+        
+        .page-number.ellipsis {
+            cursor: default;
+            border: none;
+            background: transparent;
+        }
+        
+        .page-number.ellipsis:hover {
+            background: transparent;
+            color: #333;
+        }
+        
+        /* 系统配置样式 */
+        .config-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #14b8a6, #0ea5e9);
+            color: #eff6ff;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.25);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #0ea5e9, #1d4ed8);
+            box-shadow: 0 6px 20px rgba(20, 184, 166, 0.35);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: rgba(59, 130, 246, 0.15);
+            color: #1e40af;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            box-shadow: 0 2px 8px rgba(34, 197, 94, 0.1);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(59, 130, 246, 0.25);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+            transform: translateY(-1px);
+        }
+        
+        .config-container {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            padding: 2rem;
+        }
+        
+        .config-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-group .label-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            margin: 0;
+        }
+
+        .form-group .form-help {
+            font-size: 0.85em;
+            color: #666;
+            margin: 0;
+            font-style: italic;
+        }
+
+        /* 同步周期选择框样式 */
+        #sync-interval {
+            max-width: 150px;
+        }
+        
+        .form-input {
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            transition: border-color 0.2s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+        }
+        
+        .form-help {
+            font-size: 0.8rem;
+            color: #666;
+        }
+        
+        .password-input-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .password-input-container .form-input {
+            padding-right: 3rem;
+            width: 100%;
+            min-width: 400px;
+        }
+        
+        .password-toggle {
+            position: absolute;
+            right: 0.75rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0.25rem;
+            font-size: 1rem;
+            color: #666;
+            z-index: 1;
+        }
+        
+        .password-toggle:hover {
+            color: #333;
+        }
+        
+        .status-success {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .status-error {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        
+        .status-warning {
+            color: #ffc107;
+            font-weight: bold;
+        }
+        
+        /* 限制特定输入框的宽度 */
+        #soar-timeout {
+            max-width: 120px;
+        }
+        
+        .labels-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .labels-input {
+            display: flex;
+            gap: 0.5rem;
+        }
+        
+        .labels-input .form-input {
+            flex: 1;
+        }
+        
+        .labels-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            min-height: 2rem;
+        }
+        
+        .label-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: #e3f2fd;
+            color: #1976d2;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            border: 1px solid #bbdefb;
+        }
+        
+        .label-tag .remove-label {
+            background: none;
+            border: none;
+            color: #1976d2;
+            cursor: pointer;
+            font-size: 1rem;
+            line-height: 1;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .label-tag .remove-label:hover {
+            background: #1976d2;
+            color: white;
+            border-radius: 50%;
+        }
+        
+        .config-status {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .config-status h3 {
+            margin-bottom: 1rem;
+            color: #495057;
+            font-size: 1.1rem;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .status-value {
+            color: #6c757d;
+        }
+        
+        .status-success {
+            color: #28a745 !important;
+        }
+        
+        .status-error {
+            color: #dc3545 !important;
+        }
+        
+        .status-warning {
+            color: #ffc107 !important;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 2rem;
+            margin: 2rem 0;
+            padding: 0 1rem;
+        }
+
+        .stat-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05),
+                        0 2px 8px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #14b8a6, #0ea5e9, #38bdf8);
+            opacity: 0.8;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+                        0 4px 16px rgba(59, 130, 246, 0.1);
+            border-color: #3b82f6;
+        }
+        
+        .stat-card h3 {
+            margin: 0 0 1.5rem 0;
+            color: #1e293b;
+            font-size: 1.2rem;
+            font-weight: 700;
+            border-bottom: 2px solid #3b82f6;
+            padding-bottom: 0.75rem;
+        }
+        
+        .stats-grid .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+
+        .stats-grid .stat-item:hover {
+            background: #eff6ff;
+            border-color: #3b82f6;
+            transform: translateX(2px);
+        }
+
+        .stats-grid .stat-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .stat-label {
+            font-weight: 500;
+            color: #475569;
+        }
+
+        .stat-value {
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        @media (max-width: 768px) {
+            .config-container {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .labels-input {
+                flex-direction: column;
+            }
+            
+            .config-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 动态背景 -->
+    <div class="background"></div>
+
+    <!-- 浮动装饰元素 -->
+    <div class="floating-elements">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+    </div>
+
+    <div class="header">
+        <h1 style="display: flex; align-items: center; gap: 12px;">
+            <img src="/static/logo.webp"
+                 alt="SOAR MCP Server Logo"
+                 style="width: 48px; height: 48px; border-radius: 8px; object-fit: cover;">
+            SOAR MCP Server 管理后台
+        </h1>
+        <nav class="nav">
+            <div class="nav-left">
+                <a href="#" class="nav-item active" id="nav-playbooks">剧本管理</a>
+                <a href="#" class="nav-item" id="nav-tokens">Token管理</a>
+                <a href="#" class="nav-item" id="nav-config">系统配置</a>
+                <a href="#" class="nav-item" id="nav-stats">统计信息</a>
+            </div>
+            <div class="nav-right">
+                <a href="#" class="nav-item logout" id="logout-btn">注销</a>
+            </div>
+        </nav>
+    </div>
+    
+    <div class="container">
+        <div id="alert-container"></div>
+        
+        <!-- 剧本详情 Modal -->
+        <div id="playbook-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">剧本详情</h3>
+                    <button class="close" id="close-modal-btn">&times;</button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    <div class="loading">加载中...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card" id="playbooks-section">
+            <div class="card-header">
+                <h2 class="card-title">剧本管理</h2>
+                <div class="stats" id="playbook-stats">
+                    <div class="stat-item">总计: <span id="total-count">-</span></div>
+                    <div class="stat-item">启用: <span id="enabled-count">-</span></div>
+                    <div class="stat-item">禁用: <span id="disabled-count">-</span></div>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th width="25%">剧本ID</th>
+                            <th width="50%">显示名称</th>
+                            <th width="15%">最后同步</th>
+                            <th width="10%">状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playbooks-tbody">
+                        <tr>
+                            <td colspan="4" class="loading">
+                                <div>正在加载剧本数据...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- 分页控件 -->
+            <div class="pagination-container">
+                <div class="pagination-info">
+                    <span id="pagination-info">显示第 1-20 条，共 0 条</span>
+                </div>
+                <div class="pagination-controls">
+                    <button id="prev-page" class="pagination-btn" disabled>上一页</button>
+                    <div id="page-numbers" class="page-numbers"></div>
+                    <button id="next-page" class="pagination-btn" disabled>下一页</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Token管理区域 -->
+        <div class="card" id="tokens-section" style="display: none;">
+            <div class="card-header">
+                <h2 class="card-title">Token管理</h2>
+                <div class="config-actions">
+                    <button id="create-token-btn" class="btn btn-primary" onclick="showCreateTokenModal()">创建Token</button>
+                </div>
+            </div>
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th width="18%">Token名称</th>
+                            <th width="20%">Token值</th>
+                            <th width="14%">创建时间</th>
+                            <th width="14%">过期时间</th>
+                            <th width="16%">最后使用</th>
+                            <th width="10%">状态</th>
+                            <th width="8%">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tokens-tbody">
+                        <tr>
+                            <td colspan="7" class="loading">
+                                <div>正在加载Token数据...</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- 创建Token Modal -->
+        <div id="create-token-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">创建新Token</h3>
+                    <button class="close" onclick="closeCreateTokenModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="token-name">Token名称</label>
+                        <input type="text" id="token-name" class="form-input" placeholder="输入Token描述名称" required>
+                        <small class="form-help">用于标识此Token的描述性名称</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="token-expires">过期时间</label>
+                        <select id="token-expires" class="form-input">
+                            <option value="">永不过期</option>
+                            <option value="7">7天后过期</option>
+                            <option value="30">30天后过期</option>
+                            <option value="90">90天后过期</option>
+                        </select>
+                        <small class="form-help">Token的有效期，过期后将自动失效</small>
+                    </div>
+
+                    <div class="config-actions">
+                        <button type="button" class="btn btn-secondary" onclick="closeCreateTokenModal()">取消</button>
+                        <button type="button" class="btn btn-primary" onclick="createToken()">创建Token</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 显示Token值 Modal -->
+        <div id="show-token-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">Token创建成功</h3>
+                    <button class="close" onclick="closeShowTokenModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem;">
+                        <div style="color: #dc2626; font-weight: 600; font-size: 0.9rem;">
+                            ⚠️ 重要提示：请立即复制并保存以下信息，关闭窗口后将无法再次查看完整Token！
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Token值</label>
+                        <div class="password-input-container">
+                            <input type="text" id="new-token-value" class="form-input" readonly>
+                            <button type="button" class="password-toggle" onclick="copyTokenToClipboard()">
+                                <span>📋</span>
+                            </button>
+                        </div>
+                        <small class="form-help">
+                            用于API认证的访问令牌
+                        </small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>完整MCP URL (Streamable HTTP)</label>
+                        <div class="password-input-container">
+                            <input type="text" id="new-mcp-url" class="form-input" readonly>
+                            <button type="button" class="password-toggle" onclick="copyMcpUrlToClipboard()">
+                                <span>📋</span>
+                            </button>
+                        </div>
+                        <small class="form-help">
+                            Streamable HTTP类型的MCP服务器URL，可直接用于Claude Desktop、Cherry Studio等MCP客户端配置
+                        </small>
+                    </div>
+
+                    <div class="config-actions">
+                        <button type="button" class="btn btn-primary" onclick="copyTokenToClipboard()">复制Token</button>
+                        <button type="button" class="btn btn-primary" onclick="copyMcpUrlToClipboard()">复制MCP URL</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeShowTokenModal()">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 系统配置区域 -->
+        <div class="card" id="config-section" style="display: none;">
+            <div class="card-header">
+                <h2 class="card-title">系统配置</h2>
+                <div class="config-actions">
+                    <button id="test-connection-btn" class="btn btn-primary" onclick="testConnection()">测试连接</button>
+                    <button id="save-config-btn" class="btn btn-primary" onclick="saveConfiguration()">保存配置</button>
+                </div>
+            </div>
+            
+            <div class="config-container">
+                <div class="config-form">
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="soar-api-url">SOAR服务器API地址</label>
+                            <small class="form-help">SOAR服务器的API基础地址</small>
+                        </div>
+                        <input type="url" id="soar-api-url" class="form-input" placeholder="https://hg.wuzhi-ai.com" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="soar-api-token">API Token</label>
+                            <small class="form-help">用于API认证的Token</small>
+                        </div>
+                        <div class="password-input-container">
+                            <input type="password" id="soar-api-token" class="form-input" placeholder="输入API Token" required>
+                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility('soar-api-token')">
+                                <span class="eye-icon" id="soar-api-token-eye">👁️</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="soar-timeout">超时时间（秒）</label>
+                            <small class="form-help">API请求的超时时间，建议30-60秒</small>
+                        </div>
+                        <input type="number" id="soar-timeout" class="form-input" min="1" max="300" value="30" required>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="sync-interval">同步周期</label>
+                            <small class="form-help">剧本和应用的自动同步周期，默认4小时</small>
+                        </div>
+                        <select id="sync-interval" class="form-input" required>
+                            <option value="3600">1小时</option>
+                            <option value="14400" selected>4小时</option>
+                            <option value="43200">12小时</option>
+                            <option value="86400">24小时</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="label-row">
+                            <label for="label-input">剧本抓取标签</label>
+                            <small class="form-help">默认标签：MCP，如果不设置标签，则同步后台所有剧本（适合社区免费版OctoMation）</small>
+                        </div>
+                        <div class="labels-container">
+                            <div class="labels-input">
+                                <input type="text" id="label-input" class="form-input" placeholder="输入标签名称" maxlength="50">
+                                <button type="button" id="add-label-btn" class="btn btn-primary" onclick="addLabel()">添加</button>
+                            </div>
+                            <div class="labels-list" id="labels-list">
+                                <!-- 标签列表将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="config-status" id="config-status">
+                    <h3>配置状态</h3>
+                    <div class="status-item">
+                        <span class="status-label">配置验证:</span>
+                        <span class="status-value" id="config-valid">未验证</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">连接测试:</span>
+                        <span class="status-value" id="connection-status">未测试</span>
+                    </div>
+                    <div class="status-item">
+                        <span class="status-label">最后更新:</span>
+                        <span class="status-value" id="config-updated">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 统计信息页面 -->
+        <div class="card" id="stats-section" style="display: none;">
+            <div class="card-header">
+                <h2 class="card-title">统计信息</h2>
+                <div class="card-actions">
+                    <button class="btn btn-primary" onclick="refreshStats()">刷新统计</button>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3>剧本统计</h3>
+                        <div class="stat-item">
+                            <span class="stat-label">总剧本数：</span>
+                            <span class="stat-value" id="total-playbooks">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已启用：</span>
+                            <span class="stat-value" id="enabled-playbooks">-</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">已禁用：</span>
+                            <span class="stat-value" id="disabled-playbooks">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>应用统计</h3>
+                        <div class="stat-item">
+                            <span class="stat-label">总应用数：</span>
+                            <span class="stat-value" id="total-apps">-</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <h3>系统状态</h3>
+                        <div class="stat-item">
+                            <span class="stat-label">服务状态：</span>
+                            <span class="stat-value status-success" id="service-status">运行中</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">最后同步：</span>
+                            <span class="stat-value" id="last-sync">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 检查认证状态
+        function checkAuth() {
+            const jwt = localStorage.getItem('jwt_token');
+            if (!jwt) {
+                // 如果没有token，跳转到登录页
+                window.location.href = '/login';
+                return false;
+            }
+            return jwt;
+        }
+
+        // 注销函数
+        function logout() {
+            // 确认注销
+            if (confirm('确定要注销吗？')) {
+                // 清除本地存储的JWT token
+                localStorage.removeItem('jwt_token');
+                // 跳转到登录页面
+                window.location.href = '/login';
+            }
+        }
+
+        // 通用API调用函数，自动添加JWT认证头
+        async function apiCall(url, options = {}) {
+            const jwt = checkAuth();
+            if (!jwt) return null;
+
+            const defaultOptions = {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${jwt}`
+                }
+            };
+
+            const mergedOptions = {
+                ...defaultOptions,
+                ...options,
+                headers: {
+                    ...defaultOptions.headers,
+                    ...(options.headers || {})
+                }
+            };
+
+            try {
+                const response = await fetch(url, mergedOptions);
+
+                // 如果返回401，清除token并跳转到登录页
+                if (response.status === 401) {
+                    localStorage.removeItem('jwt_token');
+                    window.location.href = '/login';
+                    return null;
+                }
+
+                return response;
+            } catch (error) {
+                console.error('API调用失败:', error);
+                throw error;
+            }
+        }
+
+        // 全局状态
+        let playbooks = [];
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        
+        // DOM 元素
+        const alertContainer = document.getElementById('alert-container');
+        const playbooksTable = document.getElementById('playbooks-tbody');
+        const totalCount = document.getElementById('total-count');
+        const enabledCount = document.getElementById('enabled-count');
+        const disabledCount = document.getElementById('disabled-count');
+        const paginationInfo = document.getElementById('pagination-info');
+        const prevPageBtn = document.getElementById('prev-page');
+        const nextPageBtn = document.getElementById('next-page');
+        const pageNumbers = document.getElementById('page-numbers');
+        
+        // 显示通知
+        function showAlert(message, type = 'success') {
+            const alert = document.createElement('div');
+            alert.className = type === 'error' ? 'error' : 'success';
+            alert.textContent = message;
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 3000);
+        }
+
+        // 显示增强的复制成功提醒
+        function showCopySuccessAlert(message) {
+            // 创建特殊的复制成功提醒框
+            const copyAlert = document.createElement('div');
+            copyAlert.className = 'copy-success-alert';
+            copyAlert.innerHTML = `
+                <div class="copy-success-content">
+                    <span class="copy-success-icon">✅</span>
+                    <span class="copy-success-text">${message}</span>
+                </div>
+            `;
+
+            // 添加样式
+            copyAlert.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+                color: white;
+                padding: 1.5rem 2rem;
+                border-radius: 16px;
+                box-shadow: 0 20px 40px rgba(16, 185, 129, 0.4),
+                           0 8px 16px rgba(0, 0, 0, 0.2);
+                z-index: 10000;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                backdrop-filter: blur(10px);
+                animation: copySuccessAnimation 0.6s ease-out;
+                min-width: 300px;
+                text-align: center;
+            `;
+
+            // 添加动画样式
+            if (!document.getElementById('copy-success-style')) {
+                const style = document.createElement('style');
+                style.id = 'copy-success-style';
+                style.textContent = `
+                    @keyframes copySuccessAnimation {
+                        0% {
+                            opacity: 0;
+                            transform: translate(-50%, -50%) scale(0.8);
+                        }
+                        50% {
+                            opacity: 1;
+                            transform: translate(-50%, -50%) scale(1.05);
+                        }
+                        100% {
+                            opacity: 1;
+                            transform: translate(-50%, -50%) scale(1);
+                        }
+                    }
+                    .copy-success-content {
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        gap: 0.75rem;
+                    }
+                    .copy-success-icon {
+                        font-size: 1.5rem;
+                    }
+                    .copy-success-text {
+                        font-size: 1rem;
+                        font-weight: 600;
+                        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // 添加到页面并自动移除
+            document.body.appendChild(copyAlert);
+
+            setTimeout(() => {
+                copyAlert.style.animation = 'copySuccessAnimation 0.3s ease-out reverse';
+                setTimeout(() => {
+                    if (copyAlert.parentNode) {
+                        copyAlert.remove();
+                    }
+                }, 300);
+            }, 2000);
+        }
+        
+        // 格式化日期
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            try {
+                const date = new Date(dateStr);
+                return date.toLocaleString('zh-CN');
+            } catch {
+                return '-';
+            }
+        }
+        
+        // 切换剧本状态
+        async function togglePlaybook(playbookId, enabled) {
+            try {
+                const response = await apiCall(`/api/admin/playbooks/${playbookId}/toggle`, {
+                    method: 'POST',
+                    body: JSON.stringify({ enabled: enabled })
+                });
+
+                if (!response) return;
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(`剧本 ${playbookId} 已${enabled ? '启用' : '禁用'}`, 'success');
+                    // 更新本地状态 (注意：比较时统一转换为字符串)
+                    const playbook = playbooks.find(p => String(p.id) === String(playbookId));
+                    if (playbook) {
+                        playbook.enabled = enabled;
+                        updateStats();
+                    }
+                } else {
+                    showAlert(result.error || '操作失败', 'error');
+                    // 回滚开关状态
+                    const toggle = document.querySelector(`input[data-id="${playbookId}"]`);
+                    if (toggle) {
+                        toggle.checked = !enabled;
+                    }
+                }
+            } catch (error) {
+                showAlert('网络错误: ' + error.message, 'error');
+                // 回滚开关状态
+                const toggle = document.querySelector(`input[data-id="${playbookId}"]`);
+                if (toggle) {
+                    toggle.checked = !enabled;
+                }
+            }
+        }
+        
+        // 更新统计
+        function updateStats() {
+            const total = playbooks.length;
+            const enabled = playbooks.filter(p => p.enabled).length;
+            const disabled = total - enabled;
+            
+            totalCount.textContent = total;
+            enabledCount.textContent = enabled;
+            disabledCount.textContent = disabled;
+        }
+        
+        // 渲染剧本表格
+        function renderPlaybooks() {
+            if (playbooks.length === 0) {
+                playbooksTable.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="loading">
+                            <div>暂无剧本数据</div>
+                        </td>
+                    </tr>
+                `;
+                updatePagination();
+                return;
+            }
+            
+            // 计算分页数据
+            const totalPages = Math.ceil(playbooks.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const currentPlaybooks = playbooks.slice(startIndex, endIndex);
+            
+            playbooksTable.innerHTML = currentPlaybooks.map(playbook => `
+                <tr>
+                    <td>
+                        <span class="playbook-id" data-id="${playbook.id}">${String(playbook.id)}</span>
+                    </td>
+                    <td>
+                        <div class="playbook-display-name">${playbook.displayName || playbook.name}</div>
+                    </td>
+                    <td>${formatDate(playbook.syncTime)}</td>
+                    <td>
+                        <label class="switch">
+                            <input type="checkbox" data-id="${playbook.id}" ${playbook.enabled ? 'checked' : ''}>
+                            <span class="slider"></span>
+                        </label>
+                    </td>
+                </tr>
+            `).join('');
+            
+            // 绑定开关事件
+            playbooksTable.querySelectorAll('input[type="checkbox"]').forEach(toggle => {
+                toggle.addEventListener('change', (e) => {
+                    const playbookId = e.target.dataset.id; // 保持字符串格式避免精度丢失
+                    const enabled = e.target.checked;
+                    togglePlaybook(playbookId, enabled);
+                });
+            });
+            
+            // 绑定剧本ID点击事件
+            playbooksTable.querySelectorAll('.playbook-id').forEach(playbookIdElement => {
+                playbookIdElement.addEventListener('click', (e) => {
+                    const playbookId = e.target.dataset.id; // 保持字符串格式避免精度丢失
+                    showPlaybookDetail(playbookId);
+                });
+            });
+            
+            updateStats();
+            updatePagination();
+        }
+        
+        // 加载剧本数据
+        async function loadPlaybooks() {
+            try {
+                const response = await apiCall('/api/admin/playbooks');
+                if (!response) return;
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    playbooks = result.data;
+                    renderPlaybooks();
+                } else {
+                    showAlert(result.error || '加载剧本数据失败', 'error');
+                    playbooksTable.innerHTML = `
+                        <tr>
+                            <td colspan="4" class="loading">
+                                <div>加载失败，请刷新页面重试</div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                showAlert('网络错误: ' + error.message, 'error');
+                playbooksTable.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="loading">
+                            <div>网络错误，请检查连接</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // 显示剧本详情
+        async function showPlaybookDetail(playbookId) {
+            const modal = document.getElementById('playbook-modal');
+            const modalBody = document.getElementById('modal-body');
+            
+            modal.style.display = 'block';
+            modalBody.innerHTML = '<div class="loading">加载中...</div>';
+            
+            try {
+                const response = await apiCall(`/api/admin/playbooks/${playbookId}`);
+                if (!response) {
+                    modal.style.display = 'none';
+                    return;
+                }
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    const playbook = result.data;
+                    let params = [];
+                    
+                    // 解析参数
+                    if (playbook.playbookParams) {
+                        try {
+                            params = JSON.parse(playbook.playbookParams);
+                        } catch (e) {
+                            console.warn('参数解析失败:', e);
+                        }
+                    }
+                    
+                    modalBody.innerHTML = `
+                        <div class="detail-section">
+                            <div class="detail-label">剧本ID</div>
+                            <div class="detail-value">${String(playbook.id)}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">剧本名称</div>
+                            <div class="detail-value">${playbook.name}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">显示名称</div>
+                            <div class="detail-value">${playbook.displayName || playbook.name}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">分类</div>
+                            <div class="detail-value">${playbook.playbookCategory}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">描述</div>
+                            <div class="detail-value">${playbook.description || '无描述'}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">创建时间</div>
+                            <div class="detail-value">${formatDate(playbook.createTime)}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">更新时间</div>
+                            <div class="detail-value">${formatDate(playbook.updateTime)}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">最后同步</div>
+                            <div class="detail-value">${formatDate(playbook.syncTime)}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">状态</div>
+                            <div class="detail-value">${playbook.enabled ? '已启用' : '已禁用'}</div>
+                        </div>
+                        
+                        <div class="detail-section">
+                            <div class="detail-label">参数信息 (${params.length} 个)</div>
+                            <div class="detail-value">
+                                ${params.length === 0 ? '无参数' : params.map(param => `
+                                    <div class="param-item">
+                                        <div class="param-name">
+                                            ${param.cefColumn || param.key || '未知参数'}
+                                            <span class="param-type">${param.valueType || param.type || 'string'}</span>
+                                            ${param.required ? '<span class="param-required">必填</span>' : ''}
+                                        </div>
+                                        ${param.cefDesc ? `<div class="param-description">${param.cefDesc}</div>` : ''}
+                                        ${param.description ? `<div class="param-description">${param.description}</div>` : ''}
+                                        ${param.defaultValue ? `<div class="param-description">默认值: ${param.defaultValue}</div>` : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    modalBody.innerHTML = `<div class="error">加载失败: ${result.error || '未知错误'}</div>`;
+                }
+            } catch (error) {
+                modalBody.innerHTML = `<div class="error">网络错误: ${error.message}</div>`;
+            }
+        }
+        
+        // 关闭Modal
+        function closeModal() {
+            document.getElementById('playbook-modal').style.display = 'none';
+        }
+        
+        // 更新分页信息和控件
+        function updatePagination() {
+            const totalPages = Math.ceil(playbooks.length / itemsPerPage);
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, playbooks.length);
+            
+            // 更新分页信息
+            if (playbooks.length === 0) {
+                paginationInfo.textContent = '显示第 0-0 条，共 0 条';
+            } else {
+                paginationInfo.textContent = `显示第 ${startIndex + 1}-${endIndex} 条，共 ${playbooks.length} 条`;
+            }
+            
+            // 更新按钮状态
+            prevPageBtn.disabled = currentPage === 1;
+            nextPageBtn.disabled = currentPage === totalPages || totalPages === 0;
+            
+            // 生成页码
+            renderPageNumbers(totalPages);
+        }
+        
+        // 渲染页码
+        function renderPageNumbers(totalPages) {
+            pageNumbers.innerHTML = '';
+            
+            if (totalPages <= 1) {
+                return;
+            }
+            
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            // 显示第一页和省略号
+            if (startPage > 1) {
+                pageNumbers.appendChild(createPageButton(1));
+                if (startPage > 2) {
+                    pageNumbers.appendChild(createEllipsis());
+                }
+            }
+            
+            // 显示页码
+            for (let page = startPage; page <= endPage; page++) {
+                pageNumbers.appendChild(createPageButton(page));
+            }
+            
+            // 显示省略号和最后一页
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    pageNumbers.appendChild(createEllipsis());
+                }
+                pageNumbers.appendChild(createPageButton(totalPages));
+            }
+        }
+        
+        // 创建页码按钮
+        function createPageButton(page) {
+            const button = document.createElement('div');
+            button.className = `page-number ${page === currentPage ? 'active' : ''}`;
+            button.textContent = page;
+            button.onclick = () => goToPage(page);
+            return button;
+        }
+        
+        // 创建省略号
+        function createEllipsis() {
+            const ellipsis = document.createElement('div');
+            ellipsis.className = 'page-number ellipsis';
+            ellipsis.textContent = '...';
+            return ellipsis;
+        }
+        
+        // 跳转到指定页
+        function goToPage(page) {
+            if (page >= 1 && page <= Math.ceil(playbooks.length / itemsPerPage)) {
+                currentPage = page;
+                renderPlaybooks();
+            }
+        }
+        
+        // 点击Modal背景关闭
+        function setupModalEvents() {
+            const modal = document.getElementById('playbook-modal');
+            const closeBtn = document.getElementById('close-modal-btn');
+            
+            // 关闭按钮事件
+            closeBtn.addEventListener('click', closeModal);
+            
+            // 点击背景关闭
+            modal.addEventListener('click', function(event) {
+                if (event.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+        
+        // 密码显示/隐藏功能
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const eyeIcon = document.getElementById(inputId + '-eye');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                eyeIcon.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                eyeIcon.textContent = '👁️';
+            }
+        }
+        
+        // 测试连接功能
+        async function testConnection() {
+            const testBtn = document.getElementById('test-connection-btn');
+            const connectionStatus = document.getElementById('connection-status');
+            
+            testBtn.disabled = true;
+            testBtn.textContent = '测试中...';
+            connectionStatus.textContent = '测试中...';
+            connectionStatus.className = 'status-warning';
+            
+            try {
+                const response = await apiCall('/api/admin/config/test', {
+                    method: 'POST',
+                    body: JSON.stringify({}) // 发送空对象，使用当前数据库配置
+                });
+
+                if (!response) return;
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    connectionStatus.textContent = '连接成功';
+                    connectionStatus.className = 'status-success';
+                    showAlert('API连接测试成功！', 'success');
+                } else {
+                    connectionStatus.textContent = '连接失败';
+                    connectionStatus.className = 'status-error';
+                    showAlert(`连接测试失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                connectionStatus.textContent = '连接失败';
+                connectionStatus.className = 'status-error';
+                showAlert(`连接测试失败: ${error.message}`, 'error');
+            }
+            
+            testBtn.disabled = false;
+            testBtn.textContent = '测试连接';
+        }
+        
+        // 保存配置功能
+        async function saveConfiguration() {
+            const saveBtn = document.getElementById('save-config-btn');
+            const configValid = document.getElementById('config-valid');
+            const configUpdated = document.getElementById('config-updated');
+            
+            saveBtn.disabled = true;
+            saveBtn.textContent = '保存中...';
+            
+            // 收集配置数据
+            const apiUrl = document.getElementById('soar-api-url').value.trim();
+            const apiToken = document.getElementById('soar-api-token').value.trim();
+            const timeout = parseInt(document.getElementById('soar-timeout').value);
+            const syncInterval = parseInt(document.getElementById('sync-interval').value);
+
+            // 收集标签
+            const labelElements = document.querySelectorAll('.label-tag .label-name');
+            const labels = Array.from(labelElements).map(el => el.textContent.trim()).filter(label => label);
+
+            // 构建配置数据
+            const configData = {
+                soar_api_url: apiUrl,
+                soar_timeout: timeout,
+                sync_interval: syncInterval,
+                soar_labels: labels
+            };
+            
+            // 检查Token是否被修改（如果不是打码格式，说明用户输入了新Token）
+            if (!apiToken.includes('***')) {
+                configData.soar_api_token = apiToken;
+            }
+            // 如果是打码格式，则不包含Token字段，后端会保持原有Token
+            
+            // 验证必填项
+            if (!apiUrl || !apiToken || !timeout) {
+                showAlert('请填写所有必填项', 'error');
+                saveBtn.disabled = false;
+                saveBtn.textContent = '保存配置';
+                return;
+            }
+            
+            try {
+                const response = await apiCall('/api/admin/config', {
+                    method: 'POST',
+                    body: JSON.stringify(configData)
+                });
+
+                if (!response) return;
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    configValid.textContent = '配置有效';
+                    configValid.className = 'status-success';
+                    configUpdated.textContent = new Date().toLocaleString('zh-CN');
+                    showAlert('配置保存成功！', 'success');
+                } else {
+                    configValid.textContent = '配置无效';
+                    configValid.className = 'status-error';
+                    showAlert(`配置保存失败: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                configValid.textContent = '配置无效';
+                configValid.className = 'status-error';
+                showAlert(`配置保存失败: ${error.message}`, 'error');
+            }
+            
+            saveBtn.disabled = false;
+            saveBtn.textContent = '保存配置';
+        }
+        
+        // 标签管理功能
+        function addLabel() {
+            const labelInput = document.getElementById('label-input');
+            const labelsList = document.getElementById('labels-list');
+            const labelName = labelInput.value.trim();
+            
+            if (!labelName) {
+                showAlert('请输入标签名称', 'warning');
+                return;
+            }
+            
+            // 检查重复
+            const existingLabels = Array.from(document.querySelectorAll('.label-tag .label-name'))
+                .map(el => el.textContent.trim());
+            
+            if (existingLabels.includes(labelName)) {
+                showAlert('标签已存在', 'warning');
+                return;
+            }
+            
+            // 创建标签元素
+            const labelElement = document.createElement('div');
+            labelElement.className = 'label-tag';
+            labelElement.innerHTML = `
+                <span class="label-name">${labelName}</span>
+                <button type="button" class="label-remove" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            labelsList.appendChild(labelElement);
+            labelInput.value = '';
+        }
+        
+        // 初始化
+        // 加载系统配置
+        async function loadSystemConfig() {
+            try {
+                const response = await apiCall('/api/admin/config');
+                if (!response) return;
+
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    // 填充表单字段
+                    document.getElementById('soar-api-url').value = data.data.soar_api_url || '';
+                    document.getElementById('soar-api-token').value = data.data.soar_api_token || '';
+                    document.getElementById('soar-timeout').value = data.data.soar_timeout || 30;
+                    document.getElementById('sync-interval').value = data.data.sync_interval || 14400;
+                    
+                    // 填充标签列表
+                    const labelsList = document.getElementById('labels-list');
+                    labelsList.innerHTML = '';
+                    
+                    const labels = data.data.soar_labels && Array.isArray(data.data.soar_labels)
+                        ? data.data.soar_labels
+                        : ["MCP"]; // 默认MCP标签
+                    
+                    labels.forEach(label => {
+                        const labelElement = document.createElement('div');
+                        labelElement.className = 'label-tag';
+                        labelElement.innerHTML = `
+                            <span class="label-name">${label}</span>
+                            <button type="button" class="label-remove" onclick="this.parentElement.remove()">×</button>
+                        `;
+                        labelsList.appendChild(labelElement);
+                    });
+                }
+            } catch (error) {
+                console.error('加载系统配置失败:', error);
+                showAlert('加载系统配置失败', 'error');
+
+                // 即使加载失败，也显示默认的MCP标签
+                const labelsList = document.getElementById('labels-list');
+                labelsList.innerHTML = '';
+                const labelElement = document.createElement('div');
+                labelElement.className = 'label-tag';
+                labelElement.innerHTML = `
+                    <span class="label-name">MCP</span>
+                    <button type="button" class="label-remove" onclick="this.parentElement.remove()">×</button>
+                `;
+                labelsList.appendChild(labelElement);
+            }
+        }
+
+        // Token管理功能
+        let tokens = [];
+
+        // 加载Token列表
+        async function loadTokens() {
+            try {
+                const response = await apiCall('/api/admin/tokens');
+                if (!response) return;
+
+                const result = await response.json();
+
+                if (result.success) {
+                    tokens = result.data;
+                    renderTokens();
+                } else {
+                    showAlert(result.error || '加载Token数据失败', 'error');
+                    document.getElementById('tokens-tbody').innerHTML = `
+                        <tr>
+                            <td colspan="7" class="loading">
+                                <div>加载失败，请刷新页面重试</div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            } catch (error) {
+                showAlert('网络错误: ' + error.message, 'error');
+                document.getElementById('tokens-tbody').innerHTML = `
+                    <tr>
+                        <td colspan="7" class="loading">
+                            <div>网络错误，请检查连接</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        // 渲染Token表格
+        function renderTokens() {
+            const tokensTable = document.getElementById('tokens-tbody');
+
+            if (tokens.length === 0) {
+                tokensTable.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="loading">
+                            <div>暂无Token数据</div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tokensTable.innerHTML = tokens.map(token => {
+                const isExpired = token.expires_at && new Date(token.expires_at) < new Date();
+                const maskedToken = token.token.substring(0, 8) + '***' + token.token.substring(token.token.length - 4);
+
+                return `
+                    <tr>
+                        <td>${token.name}</td>
+                        <td>
+                            <span class="playbook-id" style="font-size: 0.8rem; cursor: default;">${maskedToken}</span>
+                        </td>
+                        <td style="white-space: nowrap; font-size: 0.85rem;">${formatDate(token.created_at)}</td>
+                        <td style="white-space: nowrap; font-size: 0.85rem;">${token.expires_at ? formatDate(token.expires_at) : '永不过期'}</td>
+                        <td style="white-space: nowrap; font-size: 0.85rem;">${formatDate(token.last_used_at)}</td>
+                        <td>
+                            <span style="color: ${isExpired ? '#fca5a5' : (token.is_active ? '#ffffff' : '#d1d5db')}; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);">
+                                ${isExpired ? '已过期' : (token.is_active ? '活跃' : '禁用')}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;"
+                                    onclick="deleteToken(${token.id})">删除</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // 显示创建Token模态框
+        function showCreateTokenModal() {
+            document.getElementById('create-token-modal').style.display = 'block';
+            document.getElementById('token-name').value = '';
+            document.getElementById('token-expires').value = '';
+        }
+
+        // 关闭创建Token模态框
+        function closeCreateTokenModal() {
+            document.getElementById('create-token-modal').style.display = 'none';
+        }
+
+        // 创建Token
+        async function createToken() {
+            const name = document.getElementById('token-name').value.trim();
+            const expiresInDays = document.getElementById('token-expires').value;
+
+            if (!name) {
+                showAlert('请输入Token名称', 'error');
+                return;
+            }
+
+            try {
+                const response = await apiCall('/api/admin/tokens', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: name,
+                        expires_in_days: expiresInDays ? parseInt(expiresInDays) : null
+                    })
+                });
+
+                if (!response) return;
+
+                const result = await response.json();
+
+                if (result.success) {
+                    closeCreateTokenModal();
+
+                    // 显示新创建的Token值
+                    document.getElementById('new-token-value').value = result.token;
+
+                    // 生成完整的MCP URL
+                    const currentHost = window.location.host;
+                    const mcpUrl = `http://${currentHost.replace(':12346', ':12345')}/mcp?token=${result.token}`;
+                    document.getElementById('new-mcp-url').value = mcpUrl;
+
+                    document.getElementById('show-token-modal').style.display = 'block';
+
+                    // 重新加载Token列表
+                    loadTokens();
+                    showAlert('Token创建成功！', 'success');
+                } else {
+                    showAlert(result.error || 'Token创建失败', 'error');
+                }
+            } catch (error) {
+                showAlert('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        // 关闭显示Token值模态框
+        function closeShowTokenModal() {
+            document.getElementById('show-token-modal').style.display = 'none';
+            document.getElementById('new-token-value').value = '';
+            document.getElementById('new-mcp-url').value = '';
+        }
+
+        // 复制Token到剪贴板
+        async function copyTokenToClipboard() {
+            const tokenInput = document.getElementById('new-token-value');
+            try {
+                await navigator.clipboard.writeText(tokenInput.value);
+                showCopySuccessAlert('Token已复制到剪贴板');
+            } catch (error) {
+                // 兼容旧浏览器
+                tokenInput.select();
+                document.execCommand('copy');
+                showCopySuccessAlert('Token已复制到剪贴板');
+            }
+        }
+
+        // 复制MCP URL到剪贴板
+        async function copyMcpUrlToClipboard() {
+            const mcpUrlInput = document.getElementById('new-mcp-url');
+            try {
+                await navigator.clipboard.writeText(mcpUrlInput.value);
+                showCopySuccessAlert('MCP URL已复制到剪贴板');
+            } catch (error) {
+                // 兼容旧浏览器
+                mcpUrlInput.select();
+                document.execCommand('copy');
+                showCopySuccessAlert('MCP URL已复制到剪贴板');
+            }
+        }
+
+        // 删除Token
+        async function deleteToken(tokenId) {
+            if (!confirm('确定要删除这个Token吗？删除后无法恢复！')) {
+                return;
+            }
+
+            try {
+                const response = await apiCall(`/api/admin/tokens/${tokenId}`, {
+                    method: 'DELETE'
+                });
+
+                if (!response) return;
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('Token删除成功', 'success');
+                    loadTokens(); // 重新加载Token列表
+                } else {
+                    showAlert(result.error || 'Token删除失败', 'error');
+                }
+            } catch (error) {
+                showAlert('网络错误: ' + error.message, 'error');
+            }
+        }
+
+        // 将refreshStats定义为全局函数
+        function refreshStats() {
+            // 获取所有统计信息（包括剧本和应用统计）
+            apiCall('/api/admin/stats')
+                .then(response => {
+                    if (!response) return;
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data) return;
+                    if (data.success && data.stats) {
+                        // 更新剧本统计
+                        document.getElementById('total-playbooks').textContent = data.stats.total_playbooks || '-';
+                        document.getElementById('enabled-playbooks').textContent = data.stats.enabled_playbooks || '-';
+                        document.getElementById('disabled-playbooks').textContent = data.stats.disabled_playbooks || '-';
+                        
+                        // 更新应用统计
+                        document.getElementById('total-apps').textContent = data.stats.total_apps || '-';
+                        
+                        // 更新最后同步时间
+                        if (data.stats.last_sync_time) {
+                            // 直接使用后端返回的格式化字符串，避免时区转换问题
+                            document.getElementById('last-sync').textContent = data.stats.last_sync_time;
+                        }
+                    }
+                })
+                .catch(error => console.error('Error fetching stats:', error));
+        }
+        
+        // Tab切换功能
+        function showTab(tabName) {
+            // 隐藏所有section
+            document.getElementById('playbooks-section').style.display = 'none';
+            document.getElementById('tokens-section').style.display = 'none';
+            document.getElementById('config-section').style.display = 'none';
+            document.getElementById('stats-section').style.display = 'none';
+
+            // 移除所有导航项的active类
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+
+            // 显示对应的section
+            if (tabName === 'playbooks') {
+                document.getElementById('playbooks-section').style.display = 'block';
+                document.getElementById('nav-playbooks').classList.add('active');
+            } else if (tabName === 'tokens') {
+                document.getElementById('tokens-section').style.display = 'block';
+                document.getElementById('nav-tokens').classList.add('active');
+                loadTokens(); // 加载Token列表
+            } else if (tabName === 'config') {
+                document.getElementById('config-section').style.display = 'block';
+                document.getElementById('nav-config').classList.add('active');
+                loadSystemConfig(); // 加载系统配置
+            } else if (tabName === 'stats') {
+                document.getElementById('stats-section').style.display = 'block';
+                document.getElementById('nav-stats').classList.add('active');
+                refreshStats(); // 刷新统计信息
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // 页面加载时检查认证
+            if (!checkAuth()) {
+                return; // checkAuth会处理跳转
+            }
+
+            // 添加导航事件监听器
+            document.getElementById('nav-playbooks').addEventListener('click', (e) => {
+                e.preventDefault();
+                showTab('playbooks');
+            });
+
+            document.getElementById('nav-tokens').addEventListener('click', (e) => {
+                e.preventDefault();
+                showTab('tokens');
+            });
+
+            document.getElementById('nav-config').addEventListener('click', (e) => {
+                e.preventDefault();
+                showTab('config');
+            });
+
+            document.getElementById('nav-stats').addEventListener('click', (e) => {
+                e.preventDefault();
+                showTab('stats');
+            });
+
+            // 注销按钮事件监听器
+            document.getElementById('logout-btn').addEventListener('click', (e) => {
+                e.preventDefault();
+                logout();
+            });
+            setupModalEvents();
+            
+            // 设置分页按钮事件
+            prevPageBtn.addEventListener('click', () => {
+                if (currentPage > 1) {
+                    goToPage(currentPage - 1);
+                }
+            });
+            
+            nextPageBtn.addEventListener('click', () => {
+                const totalPages = Math.ceil(playbooks.length / itemsPerPage);
+                if (currentPage < totalPages) {
+                    goToPage(currentPage + 1);
+                }
+            });
+            
+            loadPlaybooks();
+            
+            // 定期刷新（每30秒）
+            setInterval(loadPlaybooks, 30000);
+
+            // 添加玻璃拟态交互效果
+            initGlassmorphismEffects();
+        });
+
+        // 玻璃拟态交互效果
+        function initGlassmorphismEffects() {
+            // 添加鼠标跟踪效果
+            document.addEventListener('mousemove', (e) => {
+                const shapes = document.querySelectorAll('.floating-shape');
+                const x = e.clientX / window.innerWidth;
+                const y = e.clientY / window.innerHeight;
+
+                shapes.forEach((shape, index) => {
+                    const speed = (index + 1) * 0.3;
+                    const xOffset = (x - 0.5) * speed * 30;
+                    const yOffset = (y - 0.5) * speed * 30;
+
+                    shape.style.transform += ` translate(${xOffset}px, ${yOffset}px)`;
+                });
+            });
+
+            // 为卡片添加悬浮效果
+            // 已移除card悬停跳动动画，提升用户体验
+
+            // 为按钮添加波纹效果
+            const buttons = document.querySelectorAll('.btn, .nav-item');
+            buttons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    const ripple = document.createElement('span');
+                    const rect = this.getBoundingClientRect();
+                    const size = Math.max(rect.width, rect.height);
+                    const x = e.clientX - rect.left - size / 2;
+                    const y = e.clientY - rect.top - size / 2;
+
+                    ripple.style.cssText = `
+                        position: absolute;
+                        width: ${size}px;
+                        height: ${size}px;
+                        left: ${x}px;
+                        top: ${y}px;
+                        background: rgba(255, 255, 255, 0.3);
+                        border-radius: 50%;
+                        transform: scale(0);
+                        animation: ripple 0.6s linear;
+                        pointer-events: none;
+                    `;
+
+                    this.appendChild(ripple);
+
+                    setTimeout(() => {
+                        ripple.remove();
+                    }, 600);
+                });
+            });
+
+            // 添加ripple动画样式
+            if (!document.getElementById('ripple-style')) {
+                const style = document.createElement('style');
+                style.id = 'ripple-style';
+                style.textContent = `
+                    @keyframes ripple {
+                        to {
+                            transform: scale(2);
+                            opacity: 0;
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+    </script>
+
+    <!-- 底部信息 -->
+    <footer class="footer">
+        <div class="footer-content">
+            雾帜智能@2025 <a href="https://flagify.com" target="_blank">最牛的SOAR</a> <a href="https://github.com/flagify-com/OctoMation/wiki" target="_blank">OctoMation</a> | <a href="https://github.com/flagify-com/soar-mcp" target="_blank">📦 Github项目</a>
+        </div>
+    </footer>
+</body>
+</html>
