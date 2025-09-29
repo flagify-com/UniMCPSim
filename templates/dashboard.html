@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表板 - UniMCPSim</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="d-flex justify-between align-center">
+                <h1>UniMCPSim 管理后台</h1>
+                <div>
+                    <span style="margin-right: 1rem;">欢迎，{{ username }}</span>
+                    <a href="/admin/logout" class="btn btn-secondary btn-sm">退出</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="container">
+            <ul>
+                <li><a href="/admin/" class="active">仪表板</a></li>
+                <li><a href="/admin/apps">应用管理</a></li>
+                <li><a href="/admin/tokens">Token管理</a></li>
+                <li><a href="/admin/prompts">提示词管理</a></li>
+                <li><a href="/admin/logs">操作日志</a></li>
+                <li><a href="/admin/change-password">修改密码</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        <div class="card">
+            <div class="card-header">系统概览</div>
+            <div class="d-flex gap-3">
+                <div class="card" style="flex: 1;">
+                    <h3 style="color: var(--primary-100);">{{ app_count }}</h3>
+                    <p>已配置应用</p>
+                </div>
+                <div class="card" style="flex: 1;">
+                    <h3 style="color: var(--accent-100);">{{ token_count }}</h3>
+                    <p>活跃Token</p>
+                </div>
+                <div class="card" style="flex: 1;">
+                    <h3 style="color: var(--text-200);">{{ log_count }}</h3>
+                    <p>今日调用</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">MCP服务器信息</div>
+            <table class="table">
+                <tbody>
+                    <tr>
+                        <td><strong>MCP服务地址</strong></td>
+                        <td>http://localhost:8080/mcp</td>
+                    </tr>
+                    <tr>
+                        <td><strong>服务状态</strong></td>
+                        <td><span class="badge badge-success" id="serverStatus">运行中</span></td>
+                    </tr>
+                    <tr>
+                        <td><strong>版本号</strong></td>
+                        <td>1.0.0</td>
+                    </tr>
+                    <tr>
+                        <td><strong>启动时间</strong></td>
+                        <td>{{ start_time }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </div>
+
+    <footer class="footer">
+        <p>版权 2025 雾帜智能</p>
+    </footer>
+
+    <script>
+        // 检查MCP服务器状态 - 使用后端API避免CORS
+        async function checkServerStatus() {
+            try {
+                const response = await fetch('/admin/api/mcp-status');
+                if (response.ok) {
+                    const data = await response.json();
+                    document.getElementById('serverStatus').textContent = data.message;
+                    document.getElementById('serverStatus').className = data.status === 'running' ? 'badge badge-success' : 'badge badge-danger';
+                } else {
+                    document.getElementById('serverStatus').textContent = '已停止';
+                    document.getElementById('serverStatus').className = 'badge badge-danger';
+                }
+            } catch (error) {
+                console.error('Health check failed:', error);
+                document.getElementById('serverStatus').textContent = '已停止';
+                document.getElementById('serverStatus').className = 'badge badge-danger';
+            }
+        }
+
+        checkServerStatus();
+        setInterval(checkServerStatus, 10000);
+    </script>
+</body>
+</html>

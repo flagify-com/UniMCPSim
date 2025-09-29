@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token管理 - UniMCPSim</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="d-flex justify-between align-center">
+                <h1>UniMCPSim 管理后台</h1>
+                <div>
+                    <span style="margin-right: 1rem;">欢迎，{{ username }}</span>
+                    <a href="/admin/logout" class="btn btn-secondary btn-sm">退出</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="container">
+            <ul>
+                <li><a href="/admin/">仪表板</a></li>
+                <li><a href="/admin/apps">应用管理</a></li>
+                <li><a href="/admin/tokens" class="active">Token管理</a></li>
+                <li><a href="/admin/logs">操作日志</a></li>
+                <li><a href="/admin/change-password">修改密码</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        <div class="card">
+            <div class="d-flex justify-between align-center">
+                <h2 class="card-header" style="border: none; margin: 0;">Token列表</h2>
+                <button onclick="showCreateModal()" class="btn btn-primary">生成新Token</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>名称</th>
+                        <th>Token</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>最后使用</th>
+                        <th>权限</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tokensList">
+                    <!-- 动态加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 创建Token模态框 -->
+    <div id="createModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">生成新Token</h3>
+            <form id="createTokenForm">
+                <div class="form-group">
+                    <label class="form-label">Token名称</label>
+                    <input type="text" name="name" class="form-control" required placeholder="例如：测试Token">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">授权应用</label>
+                    <div id="appPermissions" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--bg-300); padding: 10px; border-radius: 4px;">
+                        <!-- 动态加载应用列表 -->
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">生成Token</button>
+                    <button type="button" onclick="hideModal()" class="btn btn-secondary">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Token详情模态框 -->
+    <div id="tokenModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Token生成成功</h3>
+            <div class="alert alert-info">
+                请妥善保存此Token，关闭窗口后将无法再次查看完整Token！
+            </div>
+            <div class="form-group">
+                <label class="form-label">Token值</label>
+                <input type="text" id="newTokenValue" class="form-control" readonly>
+            </div>
+            <div class="form-group">
+                <label class="form-label">MCP连接URL</label>
+                <input type="text" id="mcpUrl" class="form-control" readonly>
+            </div>
+            <button onclick="copyToken()" class="btn btn-primary">复制Token</button>
+            <button onclick="hideTokenModal()" class="btn btn-secondary">关闭</button>
+        </div>
+    </div>
+
+    <script>
+        let allApps = [];
+
+        async function loadTokens() {
+            try {
+                const response = await fetch('/admin/api/tokens');
+                const tokens = await response.json();
+                const tbody = document.getElementById('tokensList');
+
+                tbody.innerHTML = tokens.map(token => `
+                    <tr>
+                        <td>${token.id}</td>
+                        <td>${token.name}</td>
+                        <td>
+                            <code>${token.token.substring(0, 8)}...${token.token.substring(token.token.length - 4)}</code>
+                            <button onclick="copyTokenValue('${token.token}')" class="btn btn-sm">📋</button>
+                        </td>
+                        <td>
+                            <span class="badge ${token.enabled ? 'badge-success' : 'badge-danger'}">
+                                ${token.enabled ? '启用' : '禁用'}
+                            </span>
+                        </td>
+                        <td>${new Date(token.created_at).toLocaleString()}</td>
+                        <td>${token.last_used ? new Date(token.last_used).toLocaleString() : '未使用'}</td>
+                        <td>
+                            <button onclick="showPermissions(${token.id})" class="btn btn-sm btn-secondary">
+                                查看 (${token.app_count || 0})
+                            </button>
+                        </td>
+                        <td>
+                            <button onclick="toggleToken(${token.id}, ${!token.enabled})" class="btn btn-sm btn-secondary">
+                                ${token.enabled ? '禁用' : '启用'}
+                            </button>
+                            <button onclick="deleteToken(${token.id})" class="btn btn-sm btn-danger">删除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load tokens:', error);
+            }
+        }
+
+        async function loadApps() {
+            try {
+                const response = await fetch('/admin/api/apps');
+                allApps = await response.json();
+                const container = document.getElementById('appPermissions');
+
+                container.innerHTML = allApps.map(app => `
+                    <label style="display: block; margin: 5px 0;">
+                        <input type="checkbox" name="apps" value="${app.id}">
+                        ${app.display_name} (/${app.category}/${app.name})
+                    </label>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load apps:', error);
+            }
+        }
+
+        function showCreateModal() {
+            loadApps();
+            document.getElementById('createModal').classList.add('show');
+        }
+
+        function hideModal() {
+            document.getElementById('createModal').classList.remove('show');
+        }
+
+        function hideTokenModal() {
+            document.getElementById('tokenModal').classList.remove('show');
+        }
+
+        document.getElementById('createTokenForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const selectedApps = Array.from(document.querySelectorAll('input[name="apps"]:checked'))
+                .map(cb => parseInt(cb.value));
+
+            try {
+                const response = await fetch('/admin/api/tokens', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        name: formData.get('name'),
+                        app_ids: selectedApps
+                    })
+                });
+
+                const data = await response.json();
+                if (data.token) {
+                    hideModal();
+                    document.getElementById('newTokenValue').value = data.token;
+                    document.getElementById('mcpUrl').value = `http://localhost:8080/mcp?token=${data.token}`;
+                    document.getElementById('tokenModal').classList.add('show');
+                    loadTokens();
+                }
+            } catch (error) {
+                alert('创建失败');
+            }
+        });
+
+        async function toggleToken(id, enabled) {
+            await fetch(`/admin/api/tokens/${id}`, {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({enabled})
+            });
+            loadTokens();
+        }
+
+        async function deleteToken(id) {
+            if (!confirm('确定删除此Token？')) return;
+            await fetch(`/admin/api/tokens/${id}`, {method: 'DELETE'});
+            loadTokens();
+        }
+
+        function copyTokenValue(token) {
+            navigator.clipboard.writeText(token);
+            alert('Token已复制到剪贴板');
+        }
+
+        function copyToken() {
+            const token = document.getElementById('newTokenValue').value;
+            navigator.clipboard.writeText(token);
+            alert('Token已复制到剪贴板');
+        }
+
+        async function showPermissions(tokenId) {
+            const response = await fetch(`/admin/api/tokens/${tokenId}/apps`);
+            const apps = await response.json();
+            alert('授权应用:\n' + apps.map(app => `- ${app.display_name}`).join('\n'));
+        }
+
+        loadTokens();
+    </script>
+
+    <footer class="footer">
+        <p>版权 2025 雾帜智能</p>
+    </footer>
+</body>
+</html>

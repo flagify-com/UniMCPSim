@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - UniMCPSim</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <h1 class="login-title">UniMCPSim</h1>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username" class="form-label">用户名</label>
+                    <input type="text" id="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label for="password" class="form-label">密码</label>
+                    <input type="password" id="password" class="form-control" required>
+                </div>
+                <div id="errorMsg" class="alert alert-error" style="display: none;"></div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">登录</button>
+            </form>
+            <p class="text-center mt-3" style="color: var(--text-200);">
+                默认账号：admin / admin123
+            </p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+
+            try {
+                const response = await fetch('/admin/api/login', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username, password})
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    window.location.href = '/admin/';
+                } else {
+                    errorMsg.textContent = data.message || '登录失败';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (error) {
+                errorMsg.textContent = '网络错误，请稍后重试';
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+
+    <footer class="footer">
+        <p>版权 2025 雾帜智能</p>
+    </footer>
+</body>
+</html>

@@ -1,0 +1,106 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+soar_mcp.db
+soar_mcp.db.*
+# Keep data directory structure but ignore database files
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Logs and log directories
+logs/
+logs/*.log
+logs/*.txt
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.backup
+*.backup_*
+*.bak
+*.orig
+
+# MCP related
+.playwright-mcp/
+
+# Test results and coverage
+test_results_*.json
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+
+# Database backups
+tests/backup/
+backup/
+*.sql.gz
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+
+# Runtime files
+*.pid
+*.sock
+
+# Security and sensitive files
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Local configuration overrides
+local_config.py
+config_local.py

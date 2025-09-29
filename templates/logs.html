@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>操作日志 - UniMCPSim</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <div class="d-flex justify-between align-center">
+                <h1>UniMCPSim 管理后台</h1>
+                <div>
+                    <span style="margin-right: 1rem;">欢迎，{{ username }}</span>
+                    <a href="/admin/logout" class="btn btn-secondary btn-sm">退出</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="container">
+            <ul>
+                <li><a href="/admin/">仪表板</a></li>
+                <li><a href="/admin/apps">应用管理</a></li>
+                <li><a href="/admin/tokens">Token管理</a></li>
+                <li><a href="/admin/prompts">提示词管理</a></li>
+                <li><a href="/admin/logs" class="active">操作日志</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        <div class="card">
+            <div class="card-header">操作日志</div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>应用</th>
+                        <th>操作</th>
+                        <th>参数</th>
+                        <th>响应</th>
+                        <th>IP地址</th>
+                    </tr>
+                </thead>
+                <tbody id="logsList">
+                    <!-- 动态加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>版权 2025 雾帜智能</p>
+    </footer>
+
+    <script>
+        async function loadLogs() {
+            try {
+                const response = await fetch('/admin/api/logs');
+                const logs = await response.json();
+                const tbody = document.getElementById('logsList');
+
+                tbody.innerHTML = logs.map(log => `
+                    <tr>
+                        <td>${new Date(log.timestamp).toLocaleString()}</td>
+                        <td>${log.app_name}</td>
+                        <td>${log.action}</td>
+                        <td>${JSON.stringify(log.parameters).substring(0, 50)}...</td>
+                        <td>${JSON.stringify(log.response).substring(0, 50)}...</td>
+                        <td>${log.ip_address}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Failed to load logs:', error);
+            }
+        }
+
+        loadLogs();
+        setInterval(loadLogs, 30000); // 自动刷新，每30秒
+    </script>
+</body>
+</html>
