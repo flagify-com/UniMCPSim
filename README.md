@@ -37,7 +37,81 @@ UniMCPSim/
 └── tests/                   # 测试文件
     ├── simple_test.py       # 核心功能测试
     └── test_e2e.py         # 端到端测试
+├── docs/                    # 文档目录
+│   ├── technical-architecture.svg  # 技术架构图 (SVG格式)
+│   └── technical-architecture.png  # 技术架构图 (PNG格式)
 ```
+
+## 🏗️ 系统架构
+
+UniMCPSim采用分层架构设计，清晰划分各组件职责，确保系统的可扩展性和可维护性。
+
+![技术架构图](docs/technical-architecture.png)
+
+*技术架构图也提供 [SVG格式](docs/technical-architecture.svg) 供高清查看*
+
+### 架构层次
+
+系统整体分为四个核心层次，各层之间通过标准化接口进行交互：
+
+#### 1. **客户端层 (Client Layer)**
+- **MCP客户端**: 支持Claude Desktop、Cline、Continue等标准MCP客户端
+- **HTTP客户端**: 兼容cURL、Postman等REST API工具
+- **Web浏览器**: 提供友好的管理界面访问
+- **测试客户端**: 内置自动化测试脚本
+- **外部系统**: 支持CI/CD集成和自动化流程
+
+#### 2. **应用层 (Application Layer)**
+- **MCP服务器** (`mcp_server.py`, 端口8080)
+  - 基于FastMCP框架实现标准MCP协议
+  - 支持动态工具注册和调用
+  - 实现Token认证机制
+  - 提供RESTful API接口
+
+- **管理服务器** (`admin_server.py`, 端口8081)
+  - 基于Flask框架构建
+  - 提供Web管理界面
+  - 用户认证和会话管理
+  - 权限控制和审计功能
+
+- **产品模拟器集合**: 预置9个高频使用场景的模拟器
+- **启动脚本** (`start_servers.py`): 一键启动所有服务
+
+#### 3. **服务层 (Service Layer)**
+- **AI响应生成器** (`ai_generator.py`)
+  - 集成OpenAI API
+  - 智能生成模拟响应数据
+  - 基于提示词模板动态生成动作定义
+
+- **认证工具** (`auth_utils.py`)
+  - 密码哈希和验证
+  - JWT Token生成和验证
+  - 会话管理
+
+- **数据模型** (`models.py`)
+  - SQLAlchemy ORM映射
+  - 数据库抽象层
+  - 业务实体定义
+
+#### 4. **数据层 (Data Layer)**
+- **SQLite数据库**: 轻量级本地存储，零配置
+- **静态资源**: CSS/JavaScript文件
+- **HTML模板**: Jinja2模板引擎
+- **环境配置**: .env文件管理敏感配置
+
+### 核心工作流程
+
+1. **请求流程**: 客户端 → MCP服务器 → 服务层 → 数据层
+2. **认证流程**: Token验证 → 权限检查 → 资源访问
+3. **AI增强流程**: 请求解析 → 提示词构建 → OpenAI调用 → 响应格式化
+
+### 技术优势
+
+- **标准化协议**: 完整支持MCP协议规范，确保与各类MCP客户端的兼容性
+- **模块化设计**: 各组件职责单一，便于独立开发和测试
+- **AI驱动**: 利用大语言模型能力，动态生成真实的模拟数据
+- **易于扩展**: 通过Web界面或配置文件即可添加新的模拟器
+- **零依赖部署**: SQLite数据库无需额外配置，开箱即用
 
 ## 🚀 快速开始
 

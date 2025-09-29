@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; text-anchor: middle; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 16px; text-anchor: middle; }
+      .label { font-family: Arial, sans-serif; font-size: 12px; text-anchor: middle; }
+      .small-label { font-family: Arial, sans-serif; font-size: 10px; text-anchor: middle; }
+      .box { fill: #f8f9fa; stroke: #2c3e50; stroke-width: 2; rx: 8; }
+      .client-box { fill: #e3f2fd; stroke: #1976d2; stroke-width: 2; rx: 8; }
+      .server-box { fill: #f3e5f5; stroke: #7b1fa2; stroke-width: 2; rx: 8; }
+      .db-box { fill: #e8f5e8; stroke: #388e3c; stroke-width: 2; rx: 8; }
+      .ai-box { fill: #fff3e0; stroke: #f57c00; stroke-width: 2; rx: 8; }
+      .web-box { fill: #fce4ec; stroke: #c2185b; stroke-width: 2; rx: 8; }
+      .arrow { stroke: #34495e; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .data-arrow { stroke: #27ae60; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .auth-arrow { stroke: #e74c3c; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#34495e" />
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="600" y="30" class="title" fill="#2c3e50">UniMCPSim 技术架构图</text>
+  <text x="600" y="55" class="subtitle" fill="#7f8c8d">Universal MCP Simulator Technical Architecture</text>
+
+  <!-- Client Layer -->
+  <rect x="50" y="100" width="1100" height="120" class="client-box"/>
+  <text x="600" y="125" class="subtitle" fill="#1976d2">客户端层 (Client Layer)</text>
+
+  <!-- MCP Clients -->
+  <rect x="80" y="140" width="150" height="60" class="box"/>
+  <text x="155" y="165" class="label" fill="#2c3e50">MCP 客户端</text>
+  <text x="155" y="180" class="small-label" fill="#7f8c8d">Claude Desktop</text>
+  <text x="155" y="195" class="small-label" fill="#7f8c8d">Cline, Continue</text>
+
+  <!-- HTTP Clients -->
+  <rect x="250" y="140" width="150" height="60" class="box"/>
+  <text x="325" y="165" class="label" fill="#2c3e50">HTTP 客户端</text>
+  <text x="325" y="180" class="small-label" fill="#7f8c8d">cURL, Postman</text>
+  <text x="325" y="195" class="small-label" fill="#7f8c8d">API 工具</text>
+
+  <!-- Web Browser -->
+  <rect x="420" y="140" width="150" height="60" class="box"/>
+  <text x="495" y="165" class="label" fill="#2c3e50">Web 浏览器</text>
+  <text x="495" y="180" class="small-label" fill="#7f8c8d">管理后台</text>
+  <text x="495" y="195" class="small-label" fill="#7f8c8d">Chrome, Firefox</text>
+
+  <!-- Test Clients -->
+  <rect x="590" y="140" width="150" height="60" class="box"/>
+  <text x="665" y="165" class="label" fill="#2c3e50">测试客户端</text>
+  <text x="665" y="180" class="small-label" fill="#7f8c8d">simple_test.py</text>
+  <text x="665" y="195" class="small-label" fill="#7f8c8d">test_e2e.py</text>
+
+  <!-- External Systems -->
+  <rect x="970" y="140" width="150" height="60" class="box"/>
+  <text x="1045" y="165" class="label" fill="#2c3e50">外部系统</text>
+  <text x="1045" y="180" class="small-label" fill="#7f8c8d">CI/CD 集成</text>
+  <text x="1045" y="195" class="small-label" fill="#7f8c8d">自动化测试</text>
+
+  <!-- Application Layer -->
+  <rect x="50" y="270" width="1100" height="220" class="server-box"/>
+  <text x="600" y="295" class="subtitle" fill="#7b1fa2">应用层 (Application Layer)</text>
+
+  <!-- MCP Server -->
+  <rect x="80" y="320" width="200" height="140" class="box"/>
+  <text x="180" y="345" class="label" fill="#2c3e50">MCP 服务器</text>
+  <text x="180" y="360" class="small-label" fill="#7f8c8d">mcp_server.py</text>
+  <text x="180" y="375" class="small-label" fill="#7f8c8d">端口: 8080</text>
+  <text x="120" y="395" class="small-label" fill="#7f8c8d">• FastMCP 框架</text>
+  <text x="120" y="410" class="small-label" fill="#7f8c8d">• MCP 协议支持</text>
+  <text x="120" y="425" class="small-label" fill="#7f8c8d">• 动态工具生成</text>
+  <text x="120" y="440" class="small-label" fill="#7f8c8d">• Token 认证</text>
+
+  <!-- Admin Server -->
+  <rect x="320" y="320" width="200" height="140" class="box"/>
+  <text x="420" y="345" class="label" fill="#2c3e50">管理服务器</text>
+  <text x="420" y="360" class="small-label" fill="#7f8c8d">admin_server.py</text>
+  <text x="420" y="375" class="small-label" fill="#7f8c8d">端口: 8081</text>
+  <text x="360" y="395" class="small-label" fill="#7f8c8d">• Flask 框架</text>
+  <text x="360" y="410" class="small-label" fill="#7f8c8d">• Web 管理界面</text>
+  <text x="360" y="425" class="small-label" fill="#7f8c8d">• 用户认证</text>
+  <text x="360" y="440" class="small-label" fill="#7f8c8d">• 权限管理</text>
+
+  <!-- Product Simulators -->
+  <rect x="560" y="320" width="280" height="140" class="box"/>
+  <text x="700" y="345" class="label" fill="#2c3e50">产品模拟器集合</text>
+  <text x="700" y="360" class="small-label" fill="#7f8c8d">9个预置模拟器</text>
+  <text x="580" y="380" class="small-label" fill="#7f8c8d">安全类: VirusTotal, 微步, 青藤HIDS</text>
+  <text x="580" y="395" class="small-label" fill="#7f8c8d">通讯类: 企业微信, 腾讯会议</text>
+  <text x="580" y="410" class="small-label" fill="#7f8c8d">工单类: Jira</text>
+  <text x="580" y="425" class="small-label" fill="#7f8c8d">网络类: 华为交换机, Cisco路由器</text>
+  <text x="580" y="440" class="small-label" fill="#7f8c8d">防火墙类: 深信服防火墙</text>
+
+  <!-- Start Servers -->
+  <rect x="880" y="320" width="200" height="140" class="box"/>
+  <text x="980" y="345" class="label" fill="#2c3e50">启动脚本</text>
+  <text x="980" y="360" class="small-label" fill="#7f8c8d">start_servers.py</text>
+  <text x="920" y="385" class="small-label" fill="#7f8c8d">• 一键启动服务</text>
+  <text x="920" y="400" class="small-label" fill="#7f8c8d">• 进程管理</text>
+  <text x="920" y="415" class="small-label" fill="#7f8c8d">• 环境检查</text>
+  <text x="920" y="430" class="small-label" fill="#7f8c8d">• 错误处理</text>
+
+  <!-- Service Layer -->
+  <rect x="50" y="540" width="1100" height="160" class="ai-box"/>
+  <text x="600" y="565" class="subtitle" fill="#f57c00">服务层 (Service Layer)</text>
+
+  <!-- AI Generator -->
+  <rect x="80" y="590" width="200" height="80" class="box"/>
+  <text x="180" y="615" class="label" fill="#2c3e50">AI 响应生成器</text>
+  <text x="180" y="630" class="small-label" fill="#7f8c8d">ai_generator.py</text>
+  <text x="120" y="650" class="small-label" fill="#7f8c8d">• OpenAI API 集成</text>
+  <text x="120" y="665" class="small-label" fill="#7f8c8d">• 智能响应生成</text>
+
+  <!-- Auth Utils -->
+  <rect x="320" y="590" width="200" height="80" class="box"/>
+  <text x="420" y="615" class="label" fill="#2c3e50">认证工具</text>
+  <text x="420" y="630" class="small-label" fill="#7f8c8d">auth_utils.py</text>
+  <text x="360" y="650" class="small-label" fill="#7f8c8d">• 密码哈希</text>
+  <text x="360" y="665" class="small-label" fill="#7f8c8d">• JWT Token</text>
+
+  <!-- Models -->
+  <rect x="560" y="590" width="200" height="80" class="box"/>
+  <text x="660" y="615" class="label" fill="#2c3e50">数据模型</text>
+  <text x="660" y="630" class="small-label" fill="#7f8c8d">models.py</text>
+  <text x="600" y="650" class="small-label" fill="#7f8c8d">• SQLAlchemy ORM</text>
+  <text x="600" y="665" class="small-label" fill="#7f8c8d">• 数据库抽象</text>
+
+  <!-- External AI -->
+  <rect x="800" y="590" width="280" height="80" class="box"/>
+  <text x="940" y="615" class="label" fill="#2c3e50">外部AI服务</text>
+  <text x="820" y="635" class="small-label" fill="#7f8c8d">OpenAI API (gpt-4o-mini)</text>
+  <text x="820" y="650" class="small-label" fill="#7f8c8d">• 动作定义生成</text>
+  <text x="820" y="665" class="small-label" fill="#7f8c8d">• 智能响应数据</text>
+
+  <!-- Data Layer -->
+  <rect x="50" y="750" width="1100" height="120" class="db-box"/>
+  <text x="600" y="775" class="subtitle" fill="#388e3c">数据层 (Data Layer)</text>
+
+  <!-- SQLite Database -->
+  <rect x="200" y="800" width="200" height="60" class="box"/>
+  <text x="300" y="825" class="label" fill="#2c3e50">SQLite 数据库</text>
+  <text x="300" y="840" class="small-label" fill="#7f8c8d">data/unimcp.db</text>
+  <text x="300" y="855" class="small-label" fill="#7f8c8d">轻量级存储</text>
+
+  <!-- Static Files -->
+  <rect x="440" y="800" width="150" height="60" class="box"/>
+  <text x="515" y="825" class="label" fill="#2c3e50">静态资源</text>
+  <text x="515" y="840" class="small-label" fill="#7f8c8d">static/css</text>
+  <text x="515" y="855" class="small-label" fill="#7f8c8d">static/js</text>
+
+  <!-- Templates -->
+  <rect x="620" y="800" width="150" height="60" class="box"/>
+  <text x="695" y="825" class="label" fill="#2c3e50">HTML模板</text>
+  <text x="695" y="840" class="small-label" fill="#7f8c8d">templates/</text>
+  <text x="695" y="855" class="small-label" fill="#7f8c8d">Jinja2模板</text>
+
+  <!-- Environment Config -->
+  <rect x="800" y="800" width="150" height="60" class="box"/>
+  <text x="875" y="825" class="label" fill="#2c3e50">环境配置</text>
+  <text x="875" y="840" class="small-label" fill="#7f8c8d">.env 文件</text>
+  <text x="875" y="855" class="small-label" fill="#7f8c8d">API Keys</text>
+
+  <!-- Arrows -->
+
+  <!-- Client to Server arrows -->
+  <line x1="155" y1="220" x2="155" y2="320" class="arrow"/>
+  <line x1="325" y1="220" x2="180" y2="320" class="arrow"/>
+  <line x1="495" y1="220" x2="420" y2="320" class="arrow"/>
+  <line x1="665" y1="220" x2="180" y2="320" class="arrow"/>
+  <line x1="1045" y1="220" x2="180" y2="320" class="arrow"/>
+
+  <!-- Server to Service arrows -->
+  <line x1="180" y1="470" x2="180" y2="590" class="arrow"/>
+  <line x1="420" y1="470" x2="420" y2="590" class="arrow"/>
+  <line x1="700" y1="470" x2="660" y2="590" class="arrow"/>
+
+  <!-- Service to Data arrows -->
+  <line x1="300" y1="680" x2="300" y2="800" class="data-arrow"/>
+  <line x1="420" y1="680" x2="515" y2="800" class="data-arrow"/>
+  <line x1="660" y1="680" x2="695" y2="800" class="data-arrow"/>
+  <line x1="940" y1="680" x2="875" y2="800" class="data-arrow"/>
+
+  <!-- Auth flow -->
+  <line x1="420" y1="590" x2="420" y2="470" class="auth-arrow"/>
+
+  <!-- Legend -->
+  <rect x="50" y="880" width="800" height="15" fill="none" stroke="none"/>
+  <text x="60" y="892" class="small-label" fill="#2c3e50">数据流:</text>
+  <line x1="120" y1="888" x2="140" y2="888" class="arrow"/>
+  <text x="150" y="892" class="small-label" fill="#2c3e50">请求/响应</text>
+  <line x1="230" y1="888" x2="250" y2="888" class="data-arrow"/>
+  <text x="260" y="892" class="small-label" fill="#27ae60">数据访问</text>
+  <line x1="330" y1="888" x2="350" y2="888" class="auth-arrow"/>
+  <text x="360" y="892" class="small-label" fill="#e74c3c">认证授权</text>
+
+</svg>
