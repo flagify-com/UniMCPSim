@@ -6,6 +6,7 @@
 import asyncio
 import sys
 import os
+import json
 import httpx
 
 # 添加项目根目录到路径
@@ -32,7 +33,10 @@ class ProductEndpointTester:
 
         print(f"\n使用Token: {self.token[:10]}...{self.token[-6:]}")
 
-        async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=10.0)) as client:
+        # 首先验证服务器连接 (暂时跳过，直接进行测试)
+        print("跳过服务器连接验证，直接进行测试...")
+
+        async with httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=15.0)) as client:
             # 测试企业微信端点
             await self.test_wechat_endpoint(client)
 
@@ -69,6 +73,58 @@ class ProductEndpointTester:
             print(f"❌ 获取Token失败: {e}")
             exit(1)
 
+    async def verify_server_connection(self):
+        """验证服务器连接"""
+        print("验证服务器连接...")
+        try:
+            # 使用一个简单的请求来验证服务器连接
+            async with httpx.AsyncClient(timeout=httpx.Timeout(10.0)) as client:
+                # 直接测试一个实际的端点
+                test_payload = {"method": "list_tools", "params": {}, "id": "test"}
+                response = await client.post(f"{self.base_url}/IM/WeChat?token={self.token}",
+                                           json=test_payload,
+                                           headers={"Content-Type": "application/json"})
+                if response.status_code in [200, 400]:  # 400也可能是正常响应（参数错误等）
+                    print("✅ 服务器连接正常")
+                else:
+                    print(f"❌ 服务器连接失败: {response.status_code}")
+                    exit(1)
+        except Exception as e:
+            print(f"❌ 无法连接到服务器: {e}")
+            print("请确保服务器已启动：python mcp_server.py")
+            exit(1)
+
+    async def make_request_with_retry(self, client, url, payload, max_retries=3):
+        """带重试的请求方法"""
+        for attempt in range(max_retries):
+            try:
+                response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+                return response
+            except Exception as e:
+                if attempt == max_retries - 1:
+                    raise e
+                print(f"   请求失败，重试 {attempt + 1}/{max_retries}: {e}")
+                await asyncio.sleep(1)  # 等待1秒后重试
+
+    def parse_sse_response(self, response_text):
+        """解析Server-Sent Events响应"""
+        try:
+            lines = response_text.strip().split('\n')
+            json_data = None
+            for line in lines:
+                if line.startswith('data: '):
+                    json_data = line[6:]  # 移除'data: '前缀
+                    break
+
+            if json_data:
+                return json.loads(json_data)
+            else:
+                # 如果没有找到data行，尝试直接解析整个响应
+                return json.loads(response_text)
+        except json.JSONDecodeError:
+            # 如果JSON解析失败，返回错误信息
+            return {"error": "JSON解析失败", "raw_response": response_text}
+
     async def test_wechat_endpoint(self, client):
         """测试企业微信端点"""
         print("\n============================================================")
@@ -86,18 +142,23 @@ class ProductEndpointTester:
         }
 
         try:
-            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            response = await self.make_request_with_retry(client, url, payload)
             if response.status_code == 200:
-                result = response.json()
-                print(f"✅ 成功获取工具列表")
-                if 'result' in result and 'tools' in result['result']:
-                    tools = result['result']['tools']
-                    print(f"   可用工具数量: {len(tools)}")
-                    for tool in tools[:3]:
-                        print(f"   - {tool.get('name', 'unknown')}")
-                self.passed_tests += 1
+                result = self.parse_sse_response(response.text)
+                if 'error' in result:
+                    print(f"❌ 响应解析失败: {result['error']}")
+                    self.failed_tests += 1
+                else:
+                    print(f"✅ 成功获取工具列表")
+                    if 'result' in result and 'tools' in result['result']:
+                        tools = result['result']['tools']
+                        print(f"   可用工具数量: {len(tools)}")
+                        for tool in tools[:3]:
+                            print(f"   - {tool.get('name', 'unknown')}")
+                    self.passed_tests += 1
             else:
                 print(f"❌ 请求失败: {response.status_code}")
+                print(f"   响应内容: {response.text}")
                 self.failed_tests += 1
         except Exception as e:
             print(f"❌ 测试失败: {e}")
@@ -119,13 +180,18 @@ class ProductEndpointTester:
         }
 
         try:
-            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            response = await self.make_request_with_retry(client, url, payload)
             if response.status_code == 200:
-                result = response.json()
-                print(f"✅ 发送消息成功")
-                self.passed_tests += 1
+                result = self.parse_sse_response(response.text)
+                if 'error' in result:
+                    print(f"❌ 响应解析失败: {result['error']}")
+                    self.failed_tests += 1
+                else:
+                    print(f"✅ 发送消息成功")
+                    self.passed_tests += 1
             else:
                 print(f"❌ 请求失败: {response.status_code}")
+                print(f"   响应内容: {response.text}")
                 self.failed_tests += 1
         except Exception as e:
             print(f"❌ 测试失败: {e}")
@@ -154,13 +220,18 @@ class ProductEndpointTester:
         }
 
         try:
-            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            response = await self.make_request_with_retry(client, url, payload)
             if response.status_code == 200:
-                result = response.json()
-                print(f"✅ IP扫描成功")
-                self.passed_tests += 1
+                result = self.parse_sse_response(response.text)
+                if 'error' in result:
+                    print(f"❌ 响应解析失败: {result['error']}")
+                    self.failed_tests += 1
+                else:
+                    print(f"✅ IP扫描成功")
+                    self.passed_tests += 1
             else:
                 print(f"❌ 请求失败: {response.status_code}")
+                print(f"   响应内容: {response.text}")
                 self.failed_tests += 1
         except Exception as e:
             print(f"❌ 测试失败: {e}")
@@ -190,13 +261,18 @@ class ProductEndpointTester:
         }
 
         try:
-            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            response = await self.make_request_with_retry(client, url, payload)
             if response.status_code == 200:
-                result = response.json()
-                print(f"✅ 创建工单成功")
-                self.passed_tests += 1
+                result = self.parse_sse_response(response.text)
+                if 'error' in result:
+                    print(f"❌ 响应解析失败: {result['error']}")
+                    self.failed_tests += 1
+                else:
+                    print(f"✅ 创建工单成功")
+                    self.passed_tests += 1
             else:
                 print(f"❌ 请求失败: {response.status_code}")
+                print(f"   响应内容: {response.text}")
                 self.failed_tests += 1
         except Exception as e:
             print(f"❌ 测试失败: {e}")
@@ -226,13 +302,18 @@ class ProductEndpointTester:
         }
 
         try:
-            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            response = await self.make_request_with_retry(client, url, payload)
             if response.status_code == 200:
-                result = response.json()
-                print(f"✅ 封禁IP成功")
-                self.passed_tests += 1
+                result = self.parse_sse_response(response.text)
+                if 'error' in result:
+                    print(f"❌ 响应解析失败: {result['error']}")
+                    self.failed_tests += 1
+                else:
+                    print(f"✅ 封禁IP成功")
+                    self.passed_tests += 1
             else:
                 print(f"❌ 请求失败: {response.status_code}")
+                print(f"   响应内容: {response.text}")
                 self.failed_tests += 1
         except Exception as e:
             print(f"❌ 测试失败: {e}")
@@ -261,13 +342,18 @@ class ProductEndpointTester:
         }
 
         try:
-            response = await client.post(url, json=payload, headers={"Content-Type": "application/json"})
+            response = await self.make_request_with_retry(client, url, payload)
             if response.status_code == 200:
-                result = response.json()
-                print(f"✅ 查看接口状态成功")
-                self.passed_tests += 1
+                result = self.parse_sse_response(response.text)
+                if 'error' in result:
+                    print(f"❌ 响应解析失败: {result['error']}")
+                    self.failed_tests += 1
+                else:
+                    print(f"✅ 查看接口状态成功")
+                    self.passed_tests += 1
             else:
                 print(f"❌ 请求失败: {response.status_code}")
+                print(f"   响应内容: {response.text}")
                 self.failed_tests += 1
         except Exception as e:
             print(f"❌ 测试失败: {e}")

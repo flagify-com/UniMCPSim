@@ -40,10 +40,10 @@ def test_simulator_functionality():
             "name": "企业微信发送消息",
             "category": "IM",
             "product": "WeChat",
-            "action": "send_message",
+            "action": "send_text_message",
             "params": {
                 "to_user": "test_user",
-                "text": "Hello from UniMCPSim!"
+                "content": "Hello from UniMCPSim!"
             }
         },
         {
@@ -61,7 +61,9 @@ def test_simulator_functionality():
             "product": "Jira",
             "action": "create_issue",
             "params": {
-                "title": "测试工单",
+                "project_key": "TEST",
+                "issue_type": "Task",
+                "summary": "测试工单",
                 "description": "这是一个测试工单",
                 "priority": "High"
             }
@@ -70,9 +72,9 @@ def test_simulator_functionality():
             "name": "深信服防火墙封禁IP",
             "category": "Firewall",
             "product": "Sangfor",
-            "action": "block_ip",
+            "action": "block_ip_address",
             "params": {
-                "ip": "192.168.1.100",
+                "ip_address": "192.168.1.100",
                 "reason": "可疑活动"
             }
         },
@@ -80,7 +82,7 @@ def test_simulator_functionality():
             "name": "华为交换机查看接口",
             "category": "Network",
             "product": "HuaweiSwitch",
-            "action": "show_interfaces",
+            "action": "display_interface_brief",
             "params": {}
         }
     ]

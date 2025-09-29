@@ -378,8 +378,9 @@ def check_mcp_status():
 
     try:
         # 检查本地MCP服务器状态
-        response = requests.get('http://localhost:8080/health', timeout=3)
-        print(f"MCP health check: status={response.status_code}")
+        print("Attempting to connect to MCP server at http://127.0.0.1:8080/health")
+        response = requests.get('http://127.0.0.1:8080/health', timeout=3, proxies={"http": None, "https": None})
+        print(f"MCP health check: status={response.status_code}, content_length={len(response.content)}")
         if response.status_code == 200:
             health_data = response.json()
             print(f"MCP health data: {health_data}")

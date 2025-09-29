@@ -100,7 +100,7 @@ python admin_server.py
 
 启动成功后，可以访问以下服务：
 
-- **MCP服务器**: http://localhost:8080/mcp
+- **MCP服务器**: http://localhost:8080
 - **Web管理后台**: http://localhost:8081/admin/
 - **默认管理员账号**:
   - 用户名: `admin`
@@ -170,7 +170,7 @@ python tests/test_e2e.py
 
 ### MCP客户端接入
 
-#### 方式一：直接访问产品模拟器（推荐）
+#### 产品模拟器API访问
 
 1. **获取产品工具列表**
 ```json
@@ -199,46 +199,6 @@ python tests/test_e2e.py
 }
 ```
 
-#### 方式二：通用MCP接口（兼容模式）
-
-1. **初始化连接**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "0.1.0",
-    "capabilities": {},
-    "clientInfo": {
-      "name": "your-client",
-      "version": "1.0.0"
-    }
-  },
-  "id": 1
-}
-```
-
-2. **调用通用工具**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "tools/call",
-  "params": {
-    "name": "execute_action",
-    "arguments": {
-      "token": "your-token",
-      "category": "IM",
-      "product": "WeChat",
-      "action": "send_message",
-      "parameters": {
-        "to_user": "user123",
-        "text": "Hello World"
-      }
-    }
-  },
-  "id": 2
-}
-```
 
 ### Web管理后台使用
 
