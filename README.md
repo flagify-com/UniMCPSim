@@ -126,9 +126,8 @@ python admin_server.py
 
 ### Token使用示例
 
-系统会自动创建一个Demo Token，具有访问所有应用的权限。新版本支持两种访问方式：
+系统会自动创建一个Demo Token，具有访问所有应用的权限。使用直接产品端点访问：
 
-#### 方式一：直接访问产品模拟器（推荐）
 ```bash
 # 访问企业微信模拟器
 curl "http://localhost:8080/IM/WeChat?token=<your-token>" \
@@ -141,15 +140,6 @@ curl "http://localhost:8080/IM/WeChat?token=<your-token>" \
   -H "Content-Type: application/json" \
   -H "Accept: text/event-stream" \
   -d '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "send_message", "arguments": {"to_user": "user123", "text": "Hello World"}}, "id": 2}'
-```
-
-#### 方式二：通用MCP接口（兼容模式）
-```bash
-# MCP调用示例
-curl "http://localhost:8080/mcp?token=<your-token>" \
-  -H "Content-Type: application/json" \
-  -H "Accept: application/json, text/event-stream" \
-  -d '{"jsonrpc": "2.0", "method": "initialize", "params": {"protocolVersion": "0.1.0", "capabilities": {}, "clientInfo": {"name": "test-client", "version": "1.0.0"}}, "id": 1}'
 ```
 
 ## 🧪 测试

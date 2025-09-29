@@ -128,44 +128,6 @@ async def test_tool() -> str:
     return "UniMCPSim working!"
 
 
-@mcp.tool()
-async def list_available_apps(token: str) -> List[Dict[str, Any]]:
-    """列出Token可访问的应用列表"""
-    apps = db_manager.get_token_applications(token)
-    result = []
-    for app in apps:
-        result.append({
-            "category": app.category,
-            "name": app.name,
-            "display_name": app.display_name,
-            "description": app.description,
-            "path": f"/{app.category}/{app.name}"
-        })
-    return result
-
-
-@mcp.tool()
-async def get_app_actions(token: str, category: str, product: str) -> List[Dict[str, Any]]:
-    """获取应用的动作列表"""
-    app = db_manager.get_application_by_path(category, product)
-    if not app:
-        return []
-
-    # 检查权限
-    apps = db_manager.get_token_applications(token)
-    if app not in apps:
-        return []
-
-    template = app.template if app.template else {}
-    actions = template.get('actions', [])
-
-    return actions
-
-
-@mcp.tool()
-async def execute_action(token: str, category: str, product: str, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
-    """执行应用动作"""
-    return simulator.process_request(category, product, action, parameters, token)
 
 
 # 注释掉middleware，FastMCP的middleware语法可能不同
@@ -277,33 +239,7 @@ def handle_mcp_request(data: dict, session_id: str = None, app_context: dict = N
                     "inputSchema": input_schema
                 })
 
-        # 对于应用特定的端点，只返回该应用的专用工具
-        # 通用工具只在 /mcp 端点提供
-        if not (app_context and 'app' in app_context):
-            # 只有在传统 /mcp 端点才添加通用工具
-            tools.extend([
-                {
-                    "name": "execute_action",
-                    "description": "执行应用动作",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {
-                            "action": {"type": "string", "description": "动作名称"},
-                            "parameters": {"type": "object", "description": "动作参数"}
-                        },
-                        "required": ["action"]
-                    }
-                },
-                {
-                    "name": "list_available_apps",
-                    "description": "列出可用应用",
-                    "inputSchema": {
-                        "type": "object",
-                        "properties": {},
-                        "required": []
-                    }
-                }
-            ])
+        # 仅返回当前应用的专用工具
 
         return {
             "jsonrpc": "2.0",
@@ -317,28 +253,7 @@ def handle_mcp_request(data: dict, session_id: str = None, app_context: dict = N
         tool_name = params.get('name')
         arguments = params.get('arguments', {})
 
-        if tool_name == 'execute_action':
-            # 如果有应用上下文，使用上下文信息
-            if app_context and 'app' in app_context:
-                app = app_context['app']
-                token = app_context.get('token')
-                result = simulator.process_request(
-                    app.category,
-                    app.name,
-                    arguments.get('action'),
-                    arguments.get('parameters', {}),
-                    token
-                )
-            else:
-                # 回退到原来的方式
-                result = simulator.process_request(
-                    arguments.get('category'),
-                    arguments.get('product'),
-                    arguments.get('action'),
-                    arguments.get('parameters', {}),
-                    arguments.get('token')
-                )
-        elif app_context and 'app' in app_context:
+        if app_context and 'app' in app_context:
             # 处理应用特定的工具调用
             app = app_context['app']
             token = app_context.get('token')
@@ -349,31 +264,6 @@ def handle_mcp_request(data: dict, session_id: str = None, app_context: dict = N
                 arguments,
                 token
             )
-
-            return {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "result": {
-                    "content": [{
-                        "type": "text",
-                        "text": json.dumps(result, ensure_ascii=False, indent=2)
-                    }]
-                }
-            }
-
-        elif tool_name == 'list_available_apps':
-            # 使用上下文中的token或者参数中的token
-            token_to_use = app_context.get('token') if app_context else arguments.get('token')
-            apps = db_manager.get_token_applications(token_to_use)
-            result = []
-            for app in apps:
-                result.append({
-                    "category": app.category,
-                    "name": app.name,
-                    "display_name": app.display_name,
-                    "description": app.description,
-                    "path": f"/{app.category}/{app.name}"
-                })
 
             return {
                 "jsonrpc": "2.0",
@@ -469,50 +359,6 @@ def handle_product_endpoint(product_path):
         return resp
 
 
-@app.route('/mcp', methods=['GET', 'POST', 'OPTIONS'])
-def handle_legacy_mcp():
-    """处理传统的/mcp端点（兼容性）"""
-    if request.method == 'OPTIONS':
-        return '', 200
-
-    token = request.args.get('token')
-    if not token:
-        return jsonify({"error": "Token required"}), 401
-
-    session_id = request.headers.get('mcp-session-id')
-
-    if request.method == 'GET':
-        # 返回可用应用列表
-        apps = db_manager.get_token_applications(token)
-        result = []
-        for app in apps:
-            result.append({
-                "category": app.category,
-                "name": app.name,
-                "display_name": app.display_name,
-                "description": app.description,
-                "path": f"/{app.category}/{app.name}",
-                "endpoint": f"http://localhost:8080/{app.category}/{app.name}?token={token}"
-            })
-        return jsonify({"applications": result})
-
-    elif request.method == 'POST':
-        if not request.is_json:
-            return jsonify({"error": "Content-Type must be application/json"}), 400
-
-        data = request.get_json()
-        response = handle_mcp_request(data, session_id)
-
-        resp = Response(
-            f"event: message\ndata: {json.dumps(response, ensure_ascii=False)}\n\n",
-            content_type='text/event-stream'
-        )
-
-        if data.get('method') == 'initialize' and not session_id:
-            new_session_id = list(sessions.keys())[-1] if sessions else str(uuid.uuid4())
-            resp.headers['mcp-session-id'] = new_session_id
-
-        return resp
 
 
 @app.route('/health', methods=['GET', 'HEAD', 'OPTIONS'])
@@ -547,7 +393,6 @@ def run_mcp_server():
     db_manager.create_default_admin()
 
     print("Server endpoints:")
-    print("- Legacy MCP: http://localhost:8080/mcp?token=<token>")
     print("- Product-specific: http://localhost:8080/<Category>/<Product>?token=<token>")
     print("- Example: http://localhost:8080/IM/WeChat?token=<token>")
     print("- CORS enabled for all origins")
