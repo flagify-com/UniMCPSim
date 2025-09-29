@@ -135,6 +135,10 @@ venv\Scripts\activate
 
 # 安装依赖
 pip install -r requirements.txt
+
+# 设置环境变量（重要！）
+unset HTTPS_PROXY
+unset HTTP_PROXY
 ```
 
 ### 2. 环境变量配置
@@ -142,17 +146,19 @@ pip install -r requirements.txt
 **重要！** 创建`.env`文件并配置必要的环境变量（必需步骤）：
 
 ```bash
-# OpenAI API配置（必需，用于AI驱动的动作生成）
+# 创建.env文件
+cat > .env << 'EOF'
+# OpenAI API配置（必需）
 OPENAI_API_KEY=your_openai_api_key_here
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_API_BASE_URL=https://api.openai.com/v1
-
-# 如果使用代理，请取消设置
-unset HTTPS_PROXY
-unset HTTP_PROXY
+EOF
 ```
 
-⚠️ **注意**：从v2.0开始，系统移除了静态回退方案，必须配置OpenAI API才能使用动作生成功能。系统会使用数据库中的提示词模板自动生成智能化的API动作定义。
+⚠️ **注意**：
+- 请将`your_openai_api_key_here`替换为您的真实OpenAI API密钥
+- 从v2.0开始，系统使用AI智能生成动作定义，必须配置OpenAI API
+- 如果没有配置，新建应用功能将无法正常工作
 
 ### 3. 启动服务
 
@@ -170,6 +176,26 @@ python mcp_server.py
 python admin_server.py
 ```
 
+看到以下输出表示启动成功：
+```
+==========================================================
+UniMCPSim - Universal MCP Simulator
+==========================================================
+
+初始化默认模拟器...
+✅ 已创建默认管理员用户
+
+启动服务...
+服务已启动:
+----------------------------------------------------------
+MCP服务器: http://localhost:8080
+管理后台: http://localhost:8081/admin/
+默认账号: admin / admin123
+----------------------------------------------------------
+
+按 Ctrl+C 停止服务
+```
+
 ### 4. 访问服务
 
 启动成功后，可以访问以下服务：
@@ -179,6 +205,103 @@ python admin_server.py
 - **默认管理员账号**:
   - 用户名: `admin`
   - 密码: `admin123`
+
+## 🧪 功能验证测试
+
+### 1. 测试核心功能
+
+打开新终端，运行功能测试：
+
+```bash
+cd UniMCPSim
+source venv/bin/activate
+unset HTTPS_PROXY && unset HTTP_PROXY
+
+# 运行核心功能测试
+python tests/simple_test.py
+```
+
+期望输出：
+```
+############################################################
+# UniMCPSim 功能验证测试
+############################################################
+
+============================================================
+测试应用列表功能
+============================================================
+✅ 找到 9 个已启用的应用:
+   - VirusTotal威胁情报 (/Security/VirusTotal)
+   - 微步在线威胁情报 (/Security/ThreatBook)
+   - 青藤云HIDS (/Security/QingTengHIDS)
+   - 企业微信 (/IM/WeChat)
+   - 腾讯会议 (/Meeting/TencentMeeting)
+   - Jira工单系统 (/Ticket/Jira)
+   - 华为交换机 (/Network/HuaweiSwitch)
+   - Cisco路由器 (/Network/CiscoRouter)
+   - 深信服防火墙 (/Firewall/Sangfor)
+
+============================================================
+UniMCPSim 核心功能测试
+============================================================
+✅ 使用Token: dbb02af0...a525
+
+测试 1: 企业微信发送消息 ✅ 成功
+测试 2: VirusTotal IP扫描 ✅ 成功
+测试 3: Jira创建工单 ✅ 成功
+测试 4: 深信服防火墙封禁IP ✅ 成功
+测试 5: 华为交换机查看接口 ✅ 成功
+
+============================================================
+测试总结
+============================================================
+🎉 所有测试通过!
+```
+
+### 2. Web管理后台验证
+
+浏览器访问：http://localhost:8081/admin/
+
+- 用户名：`admin`
+- 密码：`admin123`
+
+可以查看：
+- 📊 系统概览
+- 🔧 应用管理
+- 🎫 Token管理
+- 📋 审计日志
+
+### 3. API接口测试
+
+```bash
+# 获取Demo Token - 方法1：从管理后台复制
+# 访问 http://localhost:8081/admin/tokens 复制Demo Token
+
+# 获取Demo Token - 方法2：使用脚本
+TOKEN=$(python -c "
+import sys
+sys.path.append('.')
+from models import db_manager, Token
+session = db_manager.get_session()
+try:
+    demo_token = session.query(Token).filter_by(name='Demo Token').first()
+    if demo_token:
+        print(demo_token.token)
+finally:
+    session.close()
+")
+
+# 测试企业微信发送消息
+curl "http://localhost:8080/IM/WeChat?token=$TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "send_text_message",
+    "parameters": {
+      "to_user": "test_user",
+      "content": "Hello from UniMCPSim!"
+    }
+  }'
+```
 
 ## 🔧 配置说明
 
@@ -198,22 +321,404 @@ python admin_server.py
 | Network | Cisco路由器 | `/Network/CiscoRouter` | 路由器配置 |
 | Firewall | 深信服防火墙 | `/Firewall/Sangfor` | 防火墙策略管理 |
 
-### Token使用示例
+### API使用示例
 
-系统会自动创建一个Demo Token，具有访问所有应用的权限。使用直接产品端点访问：
+#### 企业微信发送消息示例
+```bash
+# 获取Demo Token (在管理后台获取或使用脚本)
+TOKEN="demo-token-here"
+
+# 直接调用企业微信API端点
+curl "http://localhost:8080/IM/WeChat?token=$TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "send_text_message",
+    "parameters": {
+      "to_user": "test_user",
+      "content": "Hello from UniMCPSim!"
+    }
+  }'
+```
+
+#### 其他产品示例
+
+**VirusTotal IP扫描**
+```bash
+curl "http://localhost:8080/Security/VirusTotal?token=$TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "scan_ip",
+    "parameters": {
+      "ip": "8.8.8.8"
+    }
+  }'
+```
+
+**Jira创建工单**
+```bash
+curl "http://localhost:8080/Ticket/Jira?token=$TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "create_issue",
+    "parameters": {
+      "project_key": "TEST",
+      "issue_type": "Task",
+      "summary": "测试工单",
+      "description": "这是一个测试工单",
+      "priority": "High"
+    }
+  }'
+```
+
+**深信服防火墙封禁IP**
+```bash
+curl "http://localhost:8080/Firewall/Sangfor?token=$TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "block_ip_address",
+    "parameters": {
+      "ip_address": "192.168.1.100",
+      "reason": "可疑活动"
+    }
+  }'
+```
+
+## 📚 MCP客户端接入指南
+
+### Cherry Studio 集成示例
+
+UniMCPSim 完美支持 Cherry Studio 等 MCP 客户端，以下是详细的集成步骤：
+
+#### 1. 在 Cherry Studio 中创建 MCP 服务器
+
+![创建MCP服务器](docs/create-mcp-sever-in-cherry-studio.jpg)
+
+在 Cherry Studio 中：
+1. 打开设置页面
+2. 选择 "MCP 服务器" 选项
+3. 点击 "添加新服务器"
+
+#### 2. 配置 UniMCPSim 服务器
+
+配置参数：
+- **服务器名称**: UniMCPSim
+- **服务器地址**: `http://localhost:8080/{Category}/{Product}?token={your-token}`
+- **协议**: HTTP
+- **认证**: Token认证
+
+示例配置：
+- 企业微信: `http://localhost:8080/IM/WeChat?token=your-demo-token`
+- 威胁情报: `http://localhost:8080/Security/VirusTotal?token=your-demo-token`
+
+#### 3. 查看可用工具列表
+
+![MCP工具列表](docs/mcp-server-tool-list-in-Cherry-Studio.jpg)
+
+配置成功后，Cherry Studio 会自动识别 UniMCPSim 提供的所有工具：
+- ✅ 企业微信消息发送
+- ✅ 威胁情报查询
+- ✅ 工单管理
+- ✅ 网络设备控制
+- ✅ 防火墙策略管理
+
+#### 4. 在对话中使用 MCP 工具
+
+![使用MCP工具](docs/use-mcp-server-in-Cherry-Studio.jpg)
+
+在 Cherry Studio 的对话界面中：
+1. 自然语言描述需求
+2. AI自动选择合适的工具
+3. 执行具体操作
+4. 获取真实的模拟响应
+
+## 🛠️ 管理后台使用指南
+
+### Web管理界面功能
+
+1. **登录系统**
+   - 访问 http://localhost:8081/admin/
+   - 使用默认账号登录（admin / admin123）
+
+2. **应用管理**
+   - 查看所有可用应用
+   - 创建新的应用模拟器
+   - 编辑应用配置和动作定义
+
+#### 创建新应用示例
+
+以下是在管理后台创建新应用的截图示例：
+
+![创建安恒扫描器应用](docs/crate-app-anheng-scanner.jpg)
+*创建安恒网络安全扫描器应用*
+
+![创建微步威胁情报应用](docs/create-app-threatbook.jpg)
+*创建微步在线威胁情报应用*
+
+通过Web界面可以轻松：
+- 📝 填写应用基本信息
+- 🔧 配置API动作定义
+- 🤖 使用AI自动生成动作
+- ✅ 实时验证配置
+
+3. **Token管理**
+   - 创建新的访问Token
+   - 配置Token权限
+   - 查看Token使用记录
+
+4. **审计日志**
+   - 查看所有API调用记录
+   - 监控系统使用情况
+
+### 添加新的模拟器
+
+#### 通过Web管理界面添加（推荐）
+
+1. 访问 http://localhost:8081/admin/
+2. 登录管理后台
+3. 进入"应用管理"页面
+4. 点击"创建新应用"按钮
+5. 填写应用信息：
+   - 应用名称（英文）
+   - 显示名称（中文）
+   - 分类
+   - 描述
+6. 配置动作定义或使用AI自动生成
+
+#### 动作定义格式
+
+在创建应用时，动作定义使用以下JSON格式：
+
+```json
+[
+  {
+    "name": "your_action",
+    "display_name": "动作显示名称",
+    "description": "动作描述",
+    "parameters": [
+      {
+        "key": "param_name",
+        "type": "String",
+        "required": true,
+        "description": "参数描述"
+      }
+    ]
+  }
+]
+```
+
+#### 访问新的模拟器
+
+创建完成后，即可通过以下URL访问：
+```
+http://localhost:8080/{Category}/{ProductName}?token=<your-token>
+```
+
+## 🎯 MCP协议详细使用说明
+
+### MCP服务器地址
+
+#### 产品特定端点（推荐）
+
+**URL格式**: `http://localhost:8080/<Category>/<Product>?token=<your-token>`
+
+**示例端点**:
+- 企业微信: `http://localhost:8080/IM/WeChat?token=<your-token>`
+- 华为交换机: `http://localhost:8080/Network/HuaweiSwitch?token=<your-token>`
+- 深信服防火墙: `http://localhost:8080/Firewall/Sangfor?token=<your-token>`
+
+### 完整MCP使用示例
+
+#### 步骤1：初始化MCP连接
 
 ```bash
-# 访问企业微信模拟器
-curl "http://localhost:8080/IM/WeChat?token=<your-token>" \
+curl -X POST "http://localhost:8080/IM/WeChat?token=f1bb3770-6e46-4fe6-b518-e1c738c7b6a4" \
   -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" \
-  -d '{"jsonrpc": "2.0", "method": "tools/list", "params": {}, "id": 1}'
+  -H "Accept: application/json, text/event-stream" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "0.1.0",
+      "capabilities": {},
+      "clientInfo": {
+        "name": "demo-client",
+        "version": "1.0.0"
+      }
+    },
+    "id": 1
+  }' \
+  -D headers.txt
+```
 
-# 调用微信发送消息功能
-curl "http://localhost:8080/IM/WeChat?token=<your-token>" \
+**响应示例**:
+```
+event: message
+data: {
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "protocolVersion": "2025-06-18",
+    "capabilities": {
+      "experimental": {},
+      "prompts": {"listChanged": true},
+      "resources": {"subscribe": false, "listChanged": true},
+      "tools": {"listChanged": true}
+    },
+    "serverInfo": {
+      "name": "UniMCPSim",
+      "version": "1.0.0"
+    },
+    "instructions": "Universal MCP Simulator - 通用MCP模拟器，可动态模拟各种产品的API接口"
+  }
+}
+```
+
+**重要**: 从响应头中提取`mcp-session-id`：
+```bash
+session_id=$(grep -i 'mcp-session-id:' headers.txt | tr -d '\r' | cut -d' ' -f2-)
+echo "会话ID: $session_id"
+```
+
+#### 步骤2：企业微信发送消息示例
+
+```bash
+# 使用提取的会话ID
+curl -X POST "http://localhost:8080/IM/WeChat?token=f1bb3770-6e46-4fe6-b518-e1c738c7b6a4" \
   -H "Content-Type: application/json" \
-  -H "Accept: text/event-stream" \
-  -d '{"jsonrpc": "2.0", "method": "tools/call", "params": {"name": "send_message", "arguments": {"to_user": "user123", "text": "Hello World"}}, "id": 2}'
+  -H "Accept: application/json, text/event-stream" \
+  -H "mcp-session-id: $session_id" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "execute_action",
+      "arguments": {
+        "token": "f1bb3770-6e46-4fe6-b518-e1c738c7b6a4",
+        "category": "IM",
+        "product": "WeChat",
+        "action": "send_message",
+        "parameters": {
+          "to_user": "zhang.san",
+          "text": "项目会议将于明天下午2点在A会议室举行，请准时参加。"
+        }
+      }
+    },
+    "id": 2
+  }'
+```
+
+### Python客户端示例
+
+```python
+import asyncio
+import httpx
+import json
+
+class UniMCPSimClient:
+    def __init__(self, base_url="http://localhost:8080", token=None, product_path=None):
+        self.base_url = base_url
+        self.token = token
+        self.product_path = product_path  # 例如: "IM/WeChat"
+        self.session_id = None
+
+    @property
+    def endpoint_url(self):
+        """获取完整的端点URL"""
+        if self.product_path:
+            return f"{self.base_url}/{self.product_path}"
+        else:
+            return f"{self.base_url}/mcp"
+
+    async def initialize(self):
+        """初始化MCP连接"""
+        async with httpx.AsyncClient() as client:
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "0.1.0",
+                    "capabilities": {},
+                    "clientInfo": {"name": "python-client", "version": "1.0.0"}
+                },
+                "id": 1
+            }
+
+            response = await client.post(
+                f"{self.endpoint_url}?token={self.token}",
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream"
+                }
+            )
+
+            # 提取会话ID
+            self.session_id = response.headers.get('mcp-session-id')
+            return response.status_code == 200
+
+    async def execute_action(self, category, product, action, parameters):
+        """执行模拟器动作"""
+        if not self.session_id:
+            raise Exception("请先调用initialize()初始化连接")
+
+        async with httpx.AsyncClient() as client:
+            payload = {
+                "jsonrpc": "2.0",
+                "method": "tools/call",
+                "params": {
+                    "name": "execute_action",
+                    "arguments": {
+                        "token": self.token,
+                        "category": category,
+                        "product": product,
+                        "action": action,
+                        "parameters": parameters
+                    }
+                },
+                "id": 2
+            }
+
+            response = await client.post(
+                f"{self.endpoint_url}?token={self.token}",
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                    "mcp-session-id": self.session_id
+                }
+            )
+
+            return response.text
+
+# 使用示例
+async def main():
+    # 使用产品特定端点（推荐）
+    client = UniMCPSimClient(
+        token="f1bb3770-6e46-4fe6-b518-e1c738c7b6a4",
+        product_path="IM/WeChat"
+    )
+
+    # 初始化连接
+    if await client.initialize():
+        print("✅ MCP连接初始化成功")
+
+        # 企业微信发送消息
+        result = await client.execute_action(
+            category="IM",
+            product="WeChat",
+            action="send_message",
+            parameters={
+                "to_user": "zhang.san",
+                "text": "Python客户端测试消息"
+            }
+        )
+        print("发送消息结果:", result)
+    else:
+        print("❌ MCP连接初始化失败")
+
+# 运行示例
+if __name__ == "__main__":
+    asyncio.run(main())
 ```
 
 ## 🧪 测试
@@ -240,121 +745,214 @@ python tests/simple_test.py
 python tests/test_e2e.py
 ```
 
-## 📚 使用指南
+### 一键测试脚本
 
-### MCP客户端接入
+创建文件 `test_wechat.sh`：
 
-#### 产品模拟器API访问
+```bash
+#!/bin/bash
 
-1. **获取产品工具列表**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "tools/list",
-  "params": {},
-  "id": 1
-}
-```
-请求URL: `http://localhost:8080/IM/WeChat?token=your-token`
+# 设置变量
+MCP_SERVER="http://localhost:8080/IM/WeChat"
+TOKEN="f1bb3770-6e46-4fe6-b518-e1c738c7b6a4"
 
-2. **调用具体工具**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "tools/call",
-  "params": {
-    "name": "send_message",
-    "arguments": {
-      "to_user": "user123",
-      "text": "Hello World"
-    }
-  },
-  "id": 2
-}
-```
+echo "=== UniMCPSim 企业微信测试 ==="
 
+# 步骤1：初始化连接
+echo "1. 初始化MCP连接..."
+init_response=$(curl -s -X POST "${MCP_SERVER}?token=${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "0.1.0",
+      "capabilities": {},
+      "clientInfo": {"name": "test-client", "version": "1.0.0"}
+    },
+    "id": 1
+  }' \
+  -D /tmp/headers.txt)
 
-### Web管理后台使用
+# 提取会话ID
+session_id=$(grep -i 'mcp-session-id:' /tmp/headers.txt | tr -d '\r' | cut -d' ' -f2-)
 
-1. **登录系统**
-   - 访问 http://localhost:8081/admin/
-   - 使用默认账号登录
+if [ -z "$session_id" ]; then
+    echo "❌ 获取会话ID失败"
+    exit 1
+fi
 
-2. **应用管理**
-   - 查看所有可用应用
-   - 创建新的应用模拟器
-   - 编辑应用配置和动作定义
+echo "✅ 连接成功，会话ID: $session_id"
 
-3. **Token管理**
-   - 创建新的访问Token
-   - 配置Token权限
-   - 查看Token使用记录
-
-4. **审计日志**
-   - 查看所有API调用记录
-   - 监控系统使用情况
-
-### 添加新的模拟器
-
-1. **通过Web管理界面添加（推荐）**
-   - 访问 http://localhost:8081/admin/
-   - 登录管理后台
-   - 进入"应用管理"页面
-   - 点击"创建新应用"按钮
-   - 填写应用信息和动作定义
-
-2. **动作定义格式**
-在创建应用时，需要按以下JSON格式定义动作：
-
-```json
-[
-  {
-    "name": "your_action",
-    "display_name": "动作显示名称",
-    "description": "动作描述",
-    "parameters": [
-      {
-        "key": "param_name",
-        "type": "String",
-        "required": true,
-        "description": "参数描述"
+# 步骤2：发送消息
+echo ""
+echo "2. 测试企业微信发送消息..."
+msg_response=$(curl -s -X POST "${MCP_SERVER}?token=${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -H "mcp-session-id: $session_id" \
+  -d '{
+    "jsonrpc": "2.0",
+    "method": "tools/call",
+    "params": {
+      "name": "execute_action",
+      "arguments": {
+        "token": "'$TOKEN'",
+        "category": "IM",
+        "product": "WeChat",
+        "action": "send_message",
+        "parameters": {
+          "to_user": "test.user",
+          "text": "这是一条测试消息"
+        }
       }
-    ]
-  }
-]
+    },
+    "id": 2
+  }')
+
+if echo "$msg_response" | grep -q "event: message"; then
+    echo "✅ 消息发送成功"
+    echo "$msg_response" | grep "data:" | sed 's/data: //'
+else
+    echo "❌ 消息发送失败"
+    echo "$msg_response"
+fi
+
+echo ""
+echo "=== 测试完成 ==="
 ```
 
-3. **访问新的模拟器**
-创建完成后，即可通过以下URL访问：
-```
-http://localhost:8080/{Category}/{ProductName}?token=<your-token>
+使用方法：
+```bash
+chmod +x test_wechat.sh
+./test_wechat.sh
 ```
 
 ## 🔍 故障排除
 
 ### 常见问题
 
-1. **端口冲突**
-   - 确保8080和8081端口未被占用
-   - 可以修改代码中的端口配置
+1. **端口被占用**
+```bash
+# 检查端口占用
+lsof -i :8080
+lsof -i :8081
+
+# 杀死占用进程
+kill -9 <PID>
+```
 
 2. **依赖安装失败**
-   - 确保使用Python 3.8+
-   - 尝试升级pip: `pip install --upgrade pip`
+```bash
+# 升级pip
+pip install --upgrade pip
 
-3. **数据库问题**
-   - 删除 `data/unimcp.db` 文件，数据库会自动重新创建
-   - 通过Web管理界面重新创建应用
+# 清除缓存重新安装
+pip cache purge
+pip install -r requirements.txt
+```
 
-4. **网络代理问题**
-   - 确保已取消HTTP代理设置
-   - 运行：`unset HTTPS_PROXY && unset HTTP_PROXY`
+3. **数据库错误**
+```bash
+# 完全重置
+rm -rf data/
+mkdir data
+python init_simulators.py
+```
 
-### 日志查看
+4. **网络代理干扰**
+```bash
+# 确保取消代理设置
+unset HTTPS_PROXY
+unset HTTP_PROXY
+unset http_proxy
+unset https_proxy
 
-- MCP服务器日志：控制台输出
-- Web后台日志：控制台输出
-- 审计日志：Web后台审计页面
+# 验证
+echo $HTTPS_PROXY  # 应该为空
+```
+
+### 调试和故障排除
+
+#### 常见错误
+
+1. **HTTP 406 Not Acceptable**
+   - 缺少正确的Accept头
+   - 解决：添加 `Accept: application/json, text/event-stream`
+
+2. **HTTP 400 Bad Request: Missing session ID**
+   - 未先进行initialize或session ID丢失
+   - 解决：先调用initialize方法获取session ID
+
+3. **HTTP 401 Unauthorized**
+   - Token无效或已过期
+   - 解决：检查Token是否正确
+
+4. **工具调用返回error**
+   - 参数不正确或缺少必填参数
+   - 解决：检查API文档确认参数格式
+
+#### 查看详细日志
+
+启动服务器时可以看到详细的请求日志：
+```bash
+python mcp_server.py
+```
+
+#### 获取可用Token
+
+```bash
+# 通过Web管理后台
+curl "http://localhost:8081/admin/api/tokens" -H "Authorization: Bearer <session>"
+
+# 或直接查询数据库
+python -c "
+from models import db_manager, Token
+session = db_manager.get_session()
+tokens = session.query(Token).filter_by(enabled=True).all()
+for token in tokens:
+    print(f'{token.name}: {token.token}')
+session.close()
+"
+```
+
+### 常用操作
+
+#### 重启服务
+```bash
+# 停止服务 (Ctrl+C)
+# 重新启动
+python start_servers.py
+```
+
+#### 重置数据库
+```bash
+# 删除现有数据库
+rm -f data/unimcp.db
+
+# 重新初始化
+python init_simulators.py
+```
+
+## 🎯 成功标志
+
+看到以下输出表示系统运行正常：
+
+1. **服务启动成功**：
+   - MCP服务器运行在8080端口
+   - Web管理后台运行在8081端口
+   - 无错误日志输出
+
+2. **功能测试通过**：
+   - `python tests/simple_test.py` 显示 "🎉 所有测试通过!"
+   - 9个应用模拟器全部可用
+   - Demo Token正常工作
+
+3. **Web界面正常**：
+   - 能够正常登录管理后台
+   - 各个页面加载正常
+   - 数据显示正确
 
 ## 🔧 开发说明
 
@@ -372,7 +970,7 @@ http://localhost:8080/{Category}/{ProductName}?token=<your-token>
 ```python
 @mcp.tool()
 async def your_new_tool(param1: str, param2: int) -> str:
-    \"\"\"工具描述\"\"\"
+    """工具描述"""
     # 实现逻辑
     return "result"
 ```
@@ -384,6 +982,13 @@ async def your_new_tool(param1: str, param2: int) -> str:
 在 `templates/` 目录添加HTML模板，在 `admin_server.py` 添加路由
 
 ## 📝 更新日志
+
+### v2.0.0 (2024-09-29)
+- ✅ 移除通用MCP接口，简化为直接产品端点
+- ✅ 完整的Cherry Studio集成支持
+- ✅ 新增应用创建截图示例
+- ✅ 整合所有文档到README
+- ✅ 改进的Web管理界面
 
 ### v1.0.0 (2024-09-28)
 - ✅ 初始版本发布
@@ -411,3 +1016,10 @@ async def your_new_tool(param1: str, param2: int) -> str:
 ---
 
 **UniMCPSim** - 让API模拟变得简单高效！🚀
+
+现在您可以：
+- 🔌 通过MCP协议连接各种客户端如Cherry Studio
+- 🌐 使用Web界面管理应用和Token
+- 🧪 开发和测试需要多种API的应用
+- 🔧 根据需要添加自定义模拟器
+- 🤖 利用AI智能生成真实的模拟响应
