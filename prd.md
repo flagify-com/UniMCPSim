@@ -12,7 +12,7 @@ OPENAI_API_BASE_URL=https://api.openai.com/v1
 
 推荐使用sqlite数据库管理不同的模拟服务，提供独立的web后台，支持用户创建不同的模拟器，以及管理token。
 
-Fastmcp的使用可以参考我给你的soar-mcp项目。但是视觉外观，完全重写，分割使用我给你的样式参考：
+项目使用 FastMCP 框架实现标准 MCP 协议支持。视觉外观使用以下样式规范：
     --primary-100:#0077C2;
     --primary-200:#59a5f5;
     --primary-300:#c8ffff;

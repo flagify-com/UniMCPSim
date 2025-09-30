@@ -4,10 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**UniMCPSim** (Universal MCP Simulator) is a comprehensive MCP (Model Context Protocol) simulator that can dynamically simulate various product API interfaces for development and testing. The project consists of two main components:
-
-1. **UniMCPSim Core** - Universal MCP simulator with AI-enhanced response generation
-2. **SOAR-MCP Integration** - Specialized SOAR platform MCP bridge (in `soar-mcp/` directory)
+**UniMCPSim** (Universal MCP Simulator) is a comprehensive MCP (Model Context Protocol) simulator that can dynamically simulate various product API interfaces for development and testing with AI-enhanced response generation.
 
 ## Architecture
 
@@ -51,27 +48,18 @@ UniMCPSim/
 │   ├── prd.md             # Product requirements document
 │   └── docs/              # Additional documentation
 │
-├── Tests
-│   └── tests/
-│       ├── simple_test.py  # Core functionality tests
-│       └── test_e2e.py     # End-to-end tests
-│
-└── SOAR Integration (subdirectory)
-    └── soar-mcp/          # Specialized SOAR MCP server
+└── Tests
+    └── tests/
+        ├── simple_test.py  # Core functionality tests
+        └── test_e2e.py     # End-to-end tests
 ```
 
-### Dual-Component Architecture
+### Project Architecture
 
-#### 1. UniMCPSim Core (Main Project)
 - **Purpose**: General-purpose MCP simulator for multiple products
 - **MCP Server** (port 8080): Simulates 9 pre-configured products
-- **Admin Server** (port 8081): Web management interface
+- **Admin Server** (port 8081): Web management interface with modern UI
 - **AI Integration**: Uses OpenAI API for intelligent response generation
-
-#### 2. SOAR-MCP (Subdirectory)
-- **Purpose**: Specialized bridge to OctoMation SOAR platform
-- **Location**: `soar-mcp/` subdirectory
-- **Documentation**: Has its own CLAUDE.md and README.md
 
 ## Key Technical Details
 
@@ -327,14 +315,6 @@ OPENAI_API_BASE_URL=https://api.openai.com/v1
 DEBUG=false
 LOG_LEVEL=INFO
 ```
-
-## SOAR-MCP Component
-
-The `soar-mcp/` subdirectory contains a specialized MCP server for SOAR platform integration:
-- See `soar-mcp/CLAUDE.md` for specific details
-- Has its own configuration and database
-- Bridges to OctoMation SOAR platform
-- Runs on ports 12345 (MCP) and 12346 (Admin)
 
 ## Project Status
 
