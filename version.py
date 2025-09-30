@@ -3,11 +3,20 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.4.0"
-__version_info__ = (2, 4, 0)
+__version__ = "2.4.1"
+__version_info__ = (2, 4, 1)
 
 # Version history
 VERSION_HISTORY = {
+    "2.4.1": {
+        "date": "2025-09-30",
+        "features": [
+            "Fixed AI prompt template to include action_definition variable",
+            "Added database migration script for existing installations",
+            "Improved AI response accuracy with complete action context",
+            "Documentation updates for upgrade procedures"
+        ]
+    },
     "2.4.0": {
         "date": "2025-09-30",
         "features": [
