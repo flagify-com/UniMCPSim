@@ -5,6 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>操作日志 - UniMCPSim</title>
     <link rel="stylesheet" href="/static/css/main.css">
+    <style>
+        .log-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .log-row:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        .json-display {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
 </head>
 <body>
 {% include '_navigation.html' %}
@@ -18,8 +39,8 @@
                         <th>时间</th>
                         <th>应用</th>
                         <th>操作</th>
-                        <th>参数</th>
-                        <th>响应</th>
+                        <th>参数摘要</th>
+                        <th>响应摘要</th>
                         <th>IP地址</th>
                     </tr>
                 </thead>
@@ -30,29 +51,110 @@
         </div>
     </div>
 
+    <!-- 日志详情 Modal -->
+    <div id="logDetailModal" class="modal" style="display: none;">
+        <div class="modal-dialog" style="max-width: 900px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">操作日志详情</h5>
+                    <button type="button" class="close" onclick="closeLogDetailModal()">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <strong>时间：</strong><span id="detailTimestamp"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>应用：</strong><span id="detailAppName"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>操作：</strong><span id="detailAction"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>IP地址：</strong><span id="detailIpAddress"></span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>请求参数：</strong>
+                        <div id="detailParameters" class="json-display"></div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>响应结果：</strong>
+                        <div id="detailResponse" class="json-display"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" onclick="closeLogDetailModal()">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 {% include '_footer.html' %}
 
     <script>
+        let currentLogs = [];
+
         async function loadLogs() {
             try {
                 const response = await fetch('/admin/api/logs');
-                const logs = await response.json();
+                currentLogs = await response.json();
                 const tbody = document.getElementById('logsList');
 
-                tbody.innerHTML = logs.map(log => `
-                    <tr>
+                tbody.innerHTML = currentLogs.map((log, index) => `
+                    <tr class="log-row" onclick="showLogDetail(${index})">
                         <td>${new Date(log.timestamp).toLocaleString()}</td>
                         <td>${log.app_name}</td>
                         <td>${log.action}</td>
-                        <td>${JSON.stringify(log.parameters).substring(0, 50)}...</td>
-                        <td>${JSON.stringify(log.response).substring(0, 50)}...</td>
-                        <td>${log.ip_address}</td>
+                        <td>${truncateJson(log.parameters, 50)}</td>
+                        <td>${truncateJson(log.response, 50)}</td>
+                        <td>${log.ip_address || 'N/A'}</td>
                     </tr>
                 `).join('');
             } catch (error) {
                 console.error('Failed to load logs:', error);
             }
         }
+
+        function truncateJson(obj, maxLength) {
+            const str = JSON.stringify(obj);
+            if (str.length <= maxLength) {
+                return str;
+            }
+            return str.substring(0, maxLength) + '...';
+        }
+
+        function showLogDetail(index) {
+            const log = currentLogs[index];
+
+            document.getElementById('detailTimestamp').textContent = new Date(log.timestamp).toLocaleString();
+            document.getElementById('detailAppName').textContent = log.app_name;
+            document.getElementById('detailAction').textContent = log.action;
+            document.getElementById('detailIpAddress').textContent = log.ip_address || 'N/A';
+            document.getElementById('detailParameters').textContent = JSON.stringify(log.parameters, null, 2);
+            document.getElementById('detailResponse').textContent = JSON.stringify(log.response, null, 2);
+
+            document.getElementById('logDetailModal').style.display = 'block';
+        }
+
+        function closeLogDetailModal() {
+            document.getElementById('logDetailModal').style.display = 'none';
+        }
+
+        // 点击 modal 外部区域关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('logDetailModal');
+            if (event.target === modal) {
+                closeLogDetailModal();
+            }
+        }
+
+        // ESC 键关闭 modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeLogDetailModal();
+            }
+        });
 
         loadLogs();
         setInterval(loadLogs, 30000); // 自动刷新，每30秒

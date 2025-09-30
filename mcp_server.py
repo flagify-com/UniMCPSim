@@ -61,7 +61,7 @@ class SimulatorEngine:
     def __init__(self):
         self.db = db_manager
 
-    def process_request(self, category: str, product: str, action: str, params: Dict[str, Any], token: str) -> Dict[str, Any]:
+    def process_request(self, category: str, product: str, action: str, params: Dict[str, Any], token: str, ip_address: str = None) -> Dict[str, Any]:
         """处理模拟请求"""
 
         # 验证Token
@@ -109,7 +109,8 @@ class SimulatorEngine:
             app_id=app.id,
             action=action,
             params=params,
-            response=response
+            response=response,
+            ip=ip_address
         )
 
         return response
@@ -259,6 +260,7 @@ def handle_mcp_request(data: dict, session_id: str = None, app_context: dict = N
             # 处理应用特定的工具调用
             app = app_context['app']
             token = app_context.get('token')
+            ip_address = app_context.get('ip_address')
             app_path = f"{app.category}/{app.name}"
 
             try:
@@ -267,7 +269,8 @@ def handle_mcp_request(data: dict, session_id: str = None, app_context: dict = N
                     app.name,
                     tool_name,  # 工具名称就是action名称
                     arguments,
-                    token
+                    token,
+                    ip_address
                 )
 
                 # 判断是否成功
@@ -436,7 +439,8 @@ def handle_product_endpoint(product_path):
         # 创建应用上下文
         app_context = {
             'app': app_obj,
-            'token': token
+            'token': token,
+            'ip_address': request.remote_addr
         }
 
         try:
