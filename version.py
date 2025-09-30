@@ -3,11 +3,20 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.1.0"
-__version_info__ = (2, 1, 0)
+__version__ = "2.2.0"
+__version_info__ = (2, 2, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.2.0": {
+        "date": "2025-09-30",
+        "features": [
+            "Centralized version management system",
+            "Dynamic version display across all pages",
+            "Version info in health check endpoint",
+            "Version display on login page"
+        ]
+    },
     "2.1.0": {
         "date": "2025-09-30",
         "features": [
