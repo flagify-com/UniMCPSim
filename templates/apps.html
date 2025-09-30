@@ -143,6 +143,70 @@
         </div>
     </div>
 
+    <!-- 应用详情模态框 -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content large">
+            <h3 class="modal-title" id="detailsTitle">应用详情</h3>
+            <div style="max-height: 600px; overflow-y: auto;">
+                <div class="card" style="background-color: var(--bg-200); margin-bottom: 1rem;">
+                    <h4 style="color: var(--primary-100); margin-bottom: 0.5rem;">基本信息</h4>
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                        <div>
+                            <strong>ID:</strong> <span id="detailId"></span>
+                        </div>
+                        <div>
+                            <strong>类别:</strong> <span id="detailCategory"></span>
+                        </div>
+                        <div>
+                            <strong>名称:</strong> <code id="detailName"></code>
+                        </div>
+                        <div>
+                            <strong>显示名称:</strong> <span id="detailDisplayName"></span>
+                        </div>
+                        <div>
+                            <strong>路径:</strong> <code id="detailPath"></code>
+                        </div>
+                        <div>
+                            <strong>状态:</strong> <span id="detailStatus"></span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <strong>描述:</strong>
+                        <div id="detailDescription" style="margin-top: 0.5rem; padding: 0.5rem; background-color: var(--bg-100); border-radius: 4px;"></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4 style="color: var(--primary-100); margin-bottom: 0.5rem;">动作列表</h4>
+                    <div id="detailActions"></div>
+                </div>
+            </div>
+
+            <div style="margin-top: 1rem;">
+                <button onclick="hideDetailsModal()" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MCP配置模态框 -->
+    <div id="mcpConfigModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">MCP客户端配置</h3>
+            <div class="alert alert-info" style="margin-bottom: 1rem;">
+                复制以下配置到Cherry Studio、Claude Desktop或Cline的MCP配置文件中。<br>
+                <strong>注意：</strong>需要从Token管理页面获取有效的token填入baseUrl参数。
+            </div>
+            <div class="form-group">
+                <label class="form-label">配置内容</label>
+                <textarea id="mcpConfigText" class="form-control" rows="15" readonly style="font-family: monospace; font-size: 13px;"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button onclick="copyMcpConfig()" class="btn btn-primary">📋 复制配置</button>
+                <button onclick="hideMcpConfigModal()" class="btn btn-secondary">关闭</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let editActionsEditor = null;
         let createActionsEditor = null;
@@ -207,7 +271,7 @@
                     <tr>
                         <td>${app.id}</td>
                         <td>${app.category}</td>
-                        <td>${app.name}</td>
+                        <td><a href="javascript:void(0)" onclick="showAppDetails(${app.id})" style="color: var(--primary-100); text-decoration: none;">${app.name}</a></td>
                         <td>${app.display_name}</td>
                         <td>/${app.category}/${app.name}</td>
                         <td>
@@ -216,6 +280,7 @@
                             </span>
                         </td>
                         <td>
+                            <button onclick="showMcpConfig(${app.id})" class="btn btn-sm btn-primary">MCP配置</button>
                             <button onclick="editApp(${app.id})" class="btn btn-sm btn-secondary">编辑</button>
                             <button onclick="toggleApp(${app.id}, ${!app.enabled})" class="btn btn-sm btn-secondary">
                                 ${app.enabled ? '禁用' : '启用'}
@@ -414,6 +479,93 @@
             if (!confirm('确定删除此应用？')) return;
             await fetch(`/admin/api/apps/${id}`, {method: 'DELETE'});
             loadApps();
+        }
+
+        async function showAppDetails(id) {
+            try {
+                const response = await fetch(`/admin/api/apps/${id}`);
+                const app = await response.json();
+
+                document.getElementById('detailsTitle').textContent = `${app.display_name} - 应用详情`;
+                document.getElementById('detailId').textContent = app.id;
+                document.getElementById('detailCategory').textContent = app.category;
+                document.getElementById('detailName').textContent = app.name;
+                document.getElementById('detailDisplayName').textContent = app.display_name;
+                document.getElementById('detailPath').textContent = `/${app.category}/${app.name}`;
+                document.getElementById('detailStatus').innerHTML = `<span class="badge ${app.enabled ? 'badge-success' : 'badge-danger'}">${app.enabled ? '启用' : '禁用'}</span>`;
+                document.getElementById('detailDescription').textContent = app.description || '无描述';
+
+                // 渲染动作列表
+                const actions = app.template?.actions || [];
+                const actionsHtml = actions.length > 0 ? actions.map(action => `
+                    <div class="card" style="margin-bottom: 1rem; background-color: var(--bg-100);">
+                        <h5 style="color: var(--primary-100);">${action.display_name || action.name}</h5>
+                        <p style="margin: 0.5rem 0;"><strong>动作名:</strong> <code>${action.name}</code></p>
+                        <p style="margin: 0.5rem 0;"><strong>描述:</strong> ${action.description || '无描述'}</p>
+                        ${action.parameters && action.parameters.length > 0 ? `
+                            <p style="margin: 0.5rem 0;"><strong>参数:</strong></p>
+                            <ul style="margin: 0; padding-left: 1.5rem;">
+                                ${action.parameters.map(param => `
+                                    <li>
+                                        <code>${param.key}</code> (${param.type})
+                                        ${param.required ? '<span class="badge badge-danger" style="font-size: 0.75rem;">必填</span>' : ''}
+                                        - ${param.description || '无描述'}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        ` : ''}
+                    </div>
+                `).join('') : '<p style="color: var(--text-secondary);">暂无动作定义</p>';
+
+                document.getElementById('detailActions').innerHTML = actionsHtml;
+                document.getElementById('detailsModal').classList.add('show');
+            } catch (error) {
+                console.error('Failed to load app details:', error);
+                alert('加载应用详情失败');
+            }
+        }
+
+        function hideDetailsModal() {
+            document.getElementById('detailsModal').classList.remove('show');
+        }
+
+        async function showMcpConfig(id) {
+            try {
+                const response = await fetch(`/admin/api/apps/${id}`);
+                const app = await response.json();
+
+                const config = {
+                    "mcpServers": {
+                        [app.name]: {
+                            "name": app.display_name,
+                            "type": "streamableHttp",
+                            "description": app.description || app.display_name,
+                            "isActive": true,
+                            "baseUrl": `http://127.0.0.1:8080/${app.category}/${app.name}?token=YOUR_TOKEN_HERE`
+                        }
+                    }
+                };
+
+                document.getElementById('mcpConfigText').value = JSON.stringify(config, null, 2);
+                document.getElementById('mcpConfigModal').classList.add('show');
+            } catch (error) {
+                console.error('Failed to generate MCP config:', error);
+                alert('生成MCP配置失败');
+            }
+        }
+
+        function hideMcpConfigModal() {
+            document.getElementById('mcpConfigModal').classList.remove('show');
+        }
+
+        function copyMcpConfig() {
+            const text = document.getElementById('mcpConfigText').value;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('MCP配置已复制到剪贴板！\n\n请记得替换 YOUR_TOKEN_HERE 为实际的token值（从Token管理页面获取）');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                alert('复制失败，请手动选择复制');
+            });
         }
 
         loadApps();
