@@ -3,11 +3,20 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.4.2"
-__version_info__ = (2, 4, 2)
+__version__ = "2.4.3"
+__version_info__ = (2, 4, 3)
 
 # Version history
 VERSION_HISTORY = {
+    "2.4.3": {
+        "date": "2025-09-30",
+        "features": [
+            "Optimized log detail modal with side-by-side layout",
+            "Request parameters and response results displayed in parallel",
+            "Increased JSON viewer height to 450px for better readability",
+            "4-column basic info layout for efficient space usage"
+        ]
+    },
     "2.4.2": {
         "date": "2025-09-30",
         "features": [
