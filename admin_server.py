@@ -11,6 +11,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from models import db_manager, User, Token, Application, AppPermission, AuditLog, PromptTemplate
 from auth_utils import hash_password, verify_password, login_required, admin_required
+from version import get_version
 
 # Load environment variables from .env file
 load_dotenv()
@@ -51,6 +52,7 @@ def dashboard():
                              token_count=token_count,
                              log_count=log_count,
                              start_time=START_TIME.strftime('%Y-%m-%d %H:%M:%S'),
+                             version=get_version(),
                              active_page='dashboard')
     finally:
         session_db.close()

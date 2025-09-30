@@ -20,6 +20,7 @@ from fastmcp import FastMCP
 from pydantic import BaseModel
 from models import db_manager, ApplicationTemplate, Action, ActionParameter, Application
 from ai_generator import ai_generator
+from version import get_version
 
 load_dotenv()
 
@@ -34,7 +35,7 @@ sessions = {}
 # 创建FastMCP实例（用于MCP协议处理）
 mcp = FastMCP(
     name="UniMCPSim",
-    version="1.0.0",
+    version=get_version(),
     instructions="Universal MCP Simulator - 通用MCP模拟器，可动态模拟各种产品的API接口"
 )
 
@@ -375,6 +376,7 @@ def health_check():
         return jsonify({
             "status": "healthy",
             "service": "UniMCPSim",
+            "version": get_version(),
             "timestamp": datetime.now().isoformat()
         }), 200
     except Exception as e:
