@@ -1,0 +1,21 @@
+    <div class="header">
+        <div class="container">
+            <div class="header-layout">
+                <h1 class="header-title">UniMCPSim 管理后台</h1>
+                <div class="header-right">
+                    <nav class="header-nav">
+                        <a href="/admin/" {% if active_page == 'dashboard' %}class="active"{% endif %}>仪表板</a>
+                        <a href="/admin/apps" {% if active_page == 'apps' %}class="active"{% endif %}>应用管理</a>
+                        <a href="/admin/tokens" {% if active_page == 'tokens' %}class="active"{% endif %}>Token管理</a>
+                        <a href="/admin/prompts" {% if active_page == 'prompts' %}class="active"{% endif %}>提示词管理</a>
+                        <a href="/admin/logs" {% if active_page == 'logs' %}class="active"{% endif %}>操作日志</a>
+                        <a href="/admin/change-password" {% if active_page == 'change_password' %}class="active"{% endif %}>修改密码</a>
+                    </nav>
+                    <div class="header-user">
+                        <span class="user-name">欢迎，{{ username }}</span>
+                        <a href="/admin/logout" class="btn btn-logout">退出</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>

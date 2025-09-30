@@ -30,10 +30,15 @@ UniMCPSim/
 │   └── css/
 │       └── main.css        # 统一CSS样式
 ├── templates/               # HTML模板
-│   ├── login.html
-│   ├── dashboard.html
-│   ├── apps.html
-│   └── tokens.html
+│   ├── _navigation.html     # 导航组件
+│   ├── _footer.html         # 页脚组件
+│   ├── login.html           # 登录页
+│   ├── dashboard.html       # 仪表板
+│   ├── apps.html            # 应用管理
+│   ├── tokens.html          # Token管理
+│   ├── prompts.html         # 提示词管理
+│   ├── logs.html            # 审计日志
+│   └── change_password.html # 密码修改
 └── tests/                   # 测试文件
     ├── simple_test.py       # 核心功能测试
     └── test_e2e.py         # 端到端测试
@@ -439,10 +444,39 @@ UniMCPSim 完美支持 Cherry Studio 等 MCP 客户端，以下是详细的集�
    - 访问 http://localhost:8081/admin/
    - 使用默认账号登录（admin / admin123）
 
-2. **应用管理**
-   - 查看所有可用应用
+2. **仪表板**
+   - 查看系统运行状态和统计信息
+   - 监控应用数量、Token数量、今日调用量
+   - 显示系统启动时间和健康状态
+
+3. **应用管理** ⭐ 增强功能
+   - 查看所有可用应用列表
    - 创建新的应用模拟器
    - 编辑应用配置和动作定义
+   - **点击应用名称查看详细信息**：完整的应用信息和动作列表
+   - **一键生成MCP配置**：自动生成标准MCP客户端配置，支持复制到Cherry Studio、Claude Desktop或Cline
+   - 使用AI自动生成动作定义
+
+4. **Token管理** ⭐ 增强功能
+   - 创建新的访问Token
+   - **可视化权限管理**：通过模态框查看和编辑Token权限
+   - **批量权限设置**：全选/取消全选功能，快速配置应用访问权限
+   - 查看Token使用记录和授权应用数量
+   - 启用/禁用Token
+
+5. **提示词管理**
+   - 管理AI生成提示词模板
+   - 自定义动作生成和响应模拟模板
+   - 支持系统变量（app_name, action_name等）
+
+6. **审计日志**
+   - 查看所有API调用记录
+   - 监控系统使用情况
+   - 追踪操作历史
+
+7. **账户管理**
+   - 修改管理员密码
+   - 安全退出
 
 #### 创建新应用示例
 

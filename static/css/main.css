@@ -32,64 +32,122 @@ body {
     padding: 20px;
 }
 
-/* Header Styles */
+/* Header Styles - Integrated Navigation */
 .header {
     background-color: var(--primary-100);
     color: white;
-    padding: 1rem 0;
+    padding: 0.6rem 0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.header h1 {
-    font-size: 1.8rem;
-    font-weight: 600;
+.header .container {
+    padding: 0 20px;
 }
 
-.nav {
-    background-color: var(--bg-100);
-    border-bottom: 2px solid var(--primary-200);
-    padding: 0.5rem 0;
-}
-
-.nav ul {
-    list-style: none;
+.header-layout {
     display: flex;
+    justify-content: space-between;
+    align-items: center;
     gap: 2rem;
 }
 
-.nav a {
-    color: var(--primary-100);
+.header-title {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin: 0;
+    white-space: nowrap;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.header-nav {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.header-nav a {
+    color: white;
     text-decoration: none;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 4px;
     transition: background-color 0.3s;
+    white-space: nowrap;
+    font-size: 0.9rem;
 }
 
-.nav a:hover {
-    background-color: var(--primary-300);
+.header-nav a:hover {
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
-.nav a.active {
-    background-color: var(--primary-200);
+.header-nav a.active {
+    background-color: rgba(255, 255, 255, 0.25);
+    font-weight: 500;
+}
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding-left: 1.2rem;
+    border-left: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.user-name {
     color: white;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.btn-logout {
+    background-color: transparent;
+    color: white;
+    padding: 0.4rem 0.8rem;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background-color 0.3s;
+    white-space: nowrap;
+}
+
+.btn-logout:hover {
+    background-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Card Styles */
 .card {
     background-color: var(--bg-100);
     border-radius: 8px;
-    padding: 1.5rem;
+    padding: 1rem;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1.5rem;
+    margin-bottom: 1rem;
 }
 
 .card-header {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-weight: 600;
     color: var(--primary-100);
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 2px solid var(--bg-200);
+}
+
+/* Compact Action Bar */
+.card-action-bar {
+    padding: 0.8rem 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.card-action-bar .card-header {
+    font-size: 1rem;
+    margin: 0;
+    padding: 0;
+    border: none;
 }
 
 /* Form Styles */
@@ -349,16 +407,17 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, var(--primary-100) 0%, var(--accent-100) 100%);
+    background: transparent;
 }
 
 .login-box {
-    background-color: var(--bg-100);
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
     border-radius: 12px;
     padding: 2.5rem;
     width: 100%;
     max-width: 400px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
 }
 
 .login-title {

@@ -7,30 +7,7 @@
     <link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
-    <div class="header">
-        <div class="container">
-            <div class="d-flex justify-between align-center">
-                <h1>UniMCPSim 管理后台</h1>
-                <div>
-                    <span style="margin-right: 1rem;">欢迎，{{ username }}</span>
-                    <a href="/admin/logout" class="btn btn-secondary btn-sm">退出</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <nav class="nav">
-        <div class="container">
-            <ul>
-                <li><a href="/admin/" class="active">仪表板</a></li>
-                <li><a href="/admin/apps">应用管理</a></li>
-                <li><a href="/admin/tokens">Token管理</a></li>
-                <li><a href="/admin/prompts">提示词管理</a></li>
-                <li><a href="/admin/logs">操作日志</a></li>
-                <li><a href="/admin/change-password">修改密码</a></li>
-            </ul>
-        </div>
-    </nav>
+{% include '_navigation.html' %}
 
     <div class="container mt-3">
         <div class="card">
@@ -65,7 +42,7 @@
                     </tr>
                     <tr>
                         <td><strong>版本号</strong></td>
-                        <td>1.0.0</td>
+                        <td>{{ version }}</td>
                     </tr>
                     <tr>
                         <td><strong>启动时间</strong></td>
@@ -77,9 +54,7 @@
 
     </div>
 
-    <footer class="footer">
-        <p>版权 2025 雾帜智能</p>
-    </footer>
+{% include '_footer.html' %}
 
     <script>
         // 检查MCP服务器状态 - 使用后端API避免CORS

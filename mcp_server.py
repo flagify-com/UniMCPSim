@@ -20,6 +20,7 @@ from fastmcp import FastMCP
 from pydantic import BaseModel
 from models import db_manager, ApplicationTemplate, Action, ActionParameter, Application
 from ai_generator import ai_generator
+from version import get_version
 
 load_dotenv()
 
@@ -34,7 +35,7 @@ sessions = {}
 # 创建FastMCP实例（用于MCP协议处理）
 mcp = FastMCP(
     name="UniMCPSim",
-    version="1.0.0",
+    version=get_version(),
     instructions="Universal MCP Simulator - 通用MCP模拟器，可动态模拟各种产品的API接口"
 )
 
@@ -98,8 +99,8 @@ class SimulatorEngine:
             if param['key'] not in params:
                 return {"error": f"Missing required parameter: {param['key']}", "code": 400}
 
-        # 生成响应
-        response = ai_generator.generate_response(app.display_name, action, params)
+        # 生成响应（传递动作定义）
+        response = ai_generator.generate_response(app.display_name, action, params, action_def)
 
         # 记录日志
         self.db.log_action(
@@ -375,6 +376,7 @@ def health_check():
         return jsonify({
             "status": "healthy",
             "service": "UniMCPSim",
+            "version": get_version(),
             "timestamp": datetime.now().isoformat()
         }), 200
     except Exception as e:

@@ -5,12 +5,13 @@ UniMCPSim 管理后台服务器
 
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
 from models import db_manager, User, Token, Application, AppPermission, AuditLog, PromptTemplate
 from auth_utils import hash_password, verify_password, login_required, admin_required
+from version import get_version
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,15 +21,15 @@ app.secret_key = os.urandom(32)
 app.permanent_session_lifetime = timedelta(hours=24)
 CORS(app)
 
-# 启动时间
-START_TIME = datetime.utcnow()
+# 启动时间（使用本地时区）
+START_TIME = datetime.now()
 
 # ===== 页面路由 =====
 
 @app.route('/admin/login')
 def login_page():
     """登录页面"""
-    return render_template('login.html')
+    return render_template('login.html', version=get_version())
 
 @app.route('/admin/')
 @login_required
@@ -40,7 +41,7 @@ def dashboard():
         token_count = session_db.query(Token).filter_by(enabled=True).count()
 
         # 今日调用量
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         log_count = session_db.query(AuditLog).filter(
             AuditLog.timestamp >= datetime.combine(today, datetime.min.time())
         ).count()
@@ -50,7 +51,9 @@ def dashboard():
                              app_count=app_count,
                              token_count=token_count,
                              log_count=log_count,
-                             start_time=START_TIME.strftime('%Y-%m-%d %H:%M:%S'))
+                             start_time=START_TIME.strftime('%Y-%m-%d %H:%M:%S'),
+                             version=get_version(),
+                             active_page='dashboard')
     finally:
         session_db.close()
 
@@ -58,31 +61,31 @@ def dashboard():
 @login_required
 def apps_page():
     """应用管理页面"""
-    return render_template('apps.html', username=session.get('username'))
+    return render_template('apps.html', username=session.get('username'), active_page='apps')
 
 @app.route('/admin/tokens')
 @login_required
 def tokens_page():
     """Token管理页面"""
-    return render_template('tokens.html', username=session.get('username'))
+    return render_template('tokens.html', username=session.get('username'), active_page='tokens')
 
 @app.route('/admin/logs')
 @login_required
 def logs_page():
     """日志页面"""
-    return render_template('logs.html', username=session.get('username'))
+    return render_template('logs.html', username=session.get('username'), active_page='logs')
 
 @app.route('/admin/prompts')
 @login_required
 def prompts_page():
     """提示词管理页面"""
-    return render_template('prompts.html', username=session.get('username'))
+    return render_template('prompts.html', username=session.get('username'), active_page='prompts')
 
 @app.route('/admin/change-password')
 @login_required
 def change_password_page():
     """修改密码页面"""
-    return render_template('change_password.html', username=session.get('username'))
+    return render_template('change_password.html', username=session.get('username'), active_page='change_password')
 
 @app.route('/admin/logout')
 def logout():
@@ -218,7 +221,7 @@ def update_app(app_id):
             if 'display_name' in data:
                 app.display_name = data['display_name']
 
-        app.updated_at = datetime.utcnow()
+        app.updated_at = datetime.now(timezone.utc)
         session_db.commit()
         return jsonify({'success': True})
     finally:
@@ -338,6 +341,31 @@ def get_token_apps(token_id):
             'category': app.category,
             'name': app.name
         } for app in apps])
+    finally:
+        session_db.close()
+
+@app.route('/admin/api/tokens/<int:token_id>/apps', methods=['PUT'])
+@login_required
+def update_token_apps(token_id):
+    """更新Token授权的应用"""
+    session_db = db_manager.get_session()
+    try:
+        data = request.get_json()
+        app_ids = data.get('app_ids', [])
+
+        # 删除现有权限
+        session_db.query(AppPermission).filter_by(token_id=token_id).delete()
+
+        # 添加新权限
+        for app_id in app_ids:
+            permission = AppPermission(token_id=token_id, application_id=app_id)
+            session_db.add(permission)
+
+        session_db.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        session_db.rollback()
+        return jsonify({'error': str(e)}), 400
     finally:
         session_db.close()
 

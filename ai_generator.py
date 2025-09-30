@@ -32,7 +32,7 @@ class AIResponseGenerator:
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
 
-    def generate_response(self, app_name: str, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_response(self, app_name: str, action: str, parameters: Dict[str, Any], action_def: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """生成模拟响应"""
 
         # 如果AI未启用，返回默认响应
@@ -47,20 +47,26 @@ class AIResponseGenerator:
                 variables = {
                     'app_name': app_name,
                     'action': action,
-                    'parameters': json.dumps(parameters, ensure_ascii=False, indent=2)
+                    'parameters': json.dumps(parameters, ensure_ascii=False, indent=2),
+                    'action_definition': json.dumps(action_def, ensure_ascii=False, indent=2) if action_def else 'null'
                 }
 
                 # 使用变量替换生成最终的prompt
                 prompt = prompt_template.template.format(**variables)
             else:
-                # 如果没有找到模板，使用原来的硬编码提示词
+                # 如果没有找到模板，使用原来的硬编码提示词（包含动作定义）
+                action_def_str = json.dumps(action_def, ensure_ascii=False, indent=2) if action_def else 'null'
                 prompt = f"""你是{app_name}系统的模拟器。用户调用了{action}操作，参数如下：
 {json.dumps(parameters, ensure_ascii=False, indent=2)}
+
+动作完整定义：
+{action_def_str}
 
 请生成一个真实的API响应结果（JSON格式）。响应应该：
 1. 符合真实系统的响应格式
 2. 包含合理的数据
 3. 反映操作的成功或失败状态
+4. 考虑参数的描述和类型要求
 
 直接返回JSON，不要任何其他说明文字。"""
 
