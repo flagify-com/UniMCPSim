@@ -5,7 +5,7 @@
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, Column, String, Text, DateTime, Boolean, Integer, ForeignKey, JSON
 from sqlalchemy.ext.declarative import declarative_base
@@ -173,7 +173,7 @@ class DatabaseManager:
         try:
             token = session.query(Token).filter_by(token=token_str, enabled=True).first()
             if token:
-                token.last_used = datetime.utcnow()
+                token.last_used = datetime.now(timezone.utc)
                 session.commit()
                 # 返回Token的基本信息而不是对象，避免session问题
                 return {
@@ -264,7 +264,7 @@ class DatabaseManager:
                 existing.description = description
                 existing.template = template
                 existing.variables = variables
-                existing.updated_at = datetime.utcnow()
+                existing.updated_at = datetime.now(timezone.utc)
                 result = existing
             else:
                 result = PromptTemplate(
@@ -303,7 +303,7 @@ class DatabaseManager:
             user = session.query(User).filter_by(username=username).first()
             if user:
                 user.password_hash = hash_password(new_password)
-                user.updated_at = datetime.utcnow()
+                user.updated_at = datetime.now(timezone.utc)
                 session.commit()
                 return True
             return False

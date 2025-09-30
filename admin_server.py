@@ -5,7 +5,7 @@ UniMCPSim 管理后台服务器
 
 import os
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
@@ -20,8 +20,8 @@ app.secret_key = os.urandom(32)
 app.permanent_session_lifetime = timedelta(hours=24)
 CORS(app)
 
-# 启动时间
-START_TIME = datetime.utcnow()
+# 启动时间（使用本地时区）
+START_TIME = datetime.now()
 
 # ===== 页面路由 =====
 
@@ -40,7 +40,7 @@ def dashboard():
         token_count = session_db.query(Token).filter_by(enabled=True).count()
 
         # 今日调用量
-        today = datetime.utcnow().date()
+        today = datetime.now(timezone.utc).date()
         log_count = session_db.query(AuditLog).filter(
             AuditLog.timestamp >= datetime.combine(today, datetime.min.time())
         ).count()
@@ -219,7 +219,7 @@ def update_app(app_id):
             if 'display_name' in data:
                 app.display_name = data['display_name']
 
-        app.updated_at = datetime.utcnow()
+        app.updated_at = datetime.now(timezone.utc)
         session_db.commit()
         return jsonify({'success': True})
     finally:

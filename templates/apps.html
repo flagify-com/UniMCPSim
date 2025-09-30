@@ -9,25 +9,13 @@
     <script src="/static/js/monaco-editor/vs/loader.js"></script>
 </head>
 <body>
-    <div class="header">
-        <div class="container">
-            <div class="d-flex justify-between align-center">
-                <h1>UniMCPSim 管理后台</h1>
-                <div>
-                    <span style="margin-right: 1rem;">欢迎，{{ username }}</span>
-                    <a href="/admin/logout" class="btn btn-secondary btn-sm">退出</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
 {% include '_navigation.html' %}
 
     <div class="container mt-3">
-        <div class="card">
+        <div class="card card-action-bar">
             <div class="d-flex justify-between align-center">
-                <h2 class="card-header" style="border: none; margin: 0;">应用列表</h2>
-                <button onclick="showCreateModal()" class="btn btn-primary">创建新应用</button>
+                <h2 class="card-header">应用列表</h2>
+                <button onclick="showCreateModal()" class="btn btn-primary btn-sm">创建新应用</button>
             </div>
         </div>
 
@@ -431,8 +419,6 @@
         loadApps();
     </script>
 
-    <footer class="footer">
-        <p>版权 2025 雾帜智能</p>
-    </footer>
+{% include '_footer.html' %}
 </body>
 </html>
