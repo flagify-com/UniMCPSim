@@ -3,11 +3,20 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.4.1"
-__version_info__ = (2, 4, 1)
+__version__ = "2.4.2"
+__version_info__ = (2, 4, 2)
 
 # Version history
 VERSION_HISTORY = {
+    "2.4.2": {
+        "date": "2025-09-30",
+        "features": [
+            "Enhanced audit log modal with Monaco Editor for JSON display",
+            "Fixed modal centering issue in logs page",
+            "Improved application list sorting (newest first)",
+            "Better UX with syntax highlighting and code folding"
+        ]
+    },
     "2.4.1": {
         "date": "2025-09-30",
         "features": [
