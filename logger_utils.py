@@ -7,7 +7,7 @@
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, Optional
 from logging.handlers import RotatingFileHandler
 from dotenv import load_dotenv
@@ -89,7 +89,7 @@ class MCPLogger:
         """记录 MCP Server 调用详情"""
 
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'type': 'mcp_request',
             'method': method,
             'path': path,
@@ -121,7 +121,7 @@ class MCPLogger:
         """记录大模型调用详情"""
 
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'type': 'ai_call',
             'provider': provider,
             'model': model,
@@ -151,7 +151,7 @@ class MCPLogger:
         """记录工具调用详情"""
 
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'type': 'tool_call',
             'tool_name': tool_name,
             'app_path': app_path,
@@ -181,7 +181,7 @@ class MCPLogger:
         """记录认证失败"""
 
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'type': 'auth_failure',
             'reason': reason,
             'token': token[:8] + '...' if token else None,
@@ -203,7 +203,7 @@ class MCPLogger:
             return  # 只在DEBUG模式下记录数据库操作
 
         log_data = {
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now(timezone.utc).isoformat(),
             'type': 'database_operation',
             'operation': operation,
             'details': details,

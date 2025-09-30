@@ -305,6 +305,27 @@ def handle_mcp_request(data: dict, session_id: str = None, app_context: dict = N
                 )
                 raise
 
+    # 处理 ping 方法（心跳检测）
+    elif method == 'ping':
+        return {
+            "jsonrpc": "2.0",
+            "id": request_id,
+            "result": {}  # 返回空对象表示服务器存活
+        }
+
+    # 处理 notifications/initialized 方法（通知）
+    elif method == 'notifications/initialized':
+        # 这是一个通知，不需要返回结果
+        # 但根据 JSON-RPC 规范，如果有 id 字段，需要返回响应
+        if request_id is not None:
+            return {
+                "jsonrpc": "2.0",
+                "id": request_id,
+                "result": {}
+            }
+        # 对于没有 id 的通知，不返回响应
+        return None
+
     return {
         "jsonrpc": "2.0",
         "id": request_id,
