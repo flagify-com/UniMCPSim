@@ -3,11 +3,22 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.3.0"
-__version_info__ = (2, 3, 0)
+__version__ = "2.4.0"
+__version_info__ = (2, 4, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.4.0": {
+        "date": "2025-09-30",
+        "features": [
+            "Enhanced logging system with DEBUG mode support",
+            "Comprehensive MCP protocol compliance (ping, notifications/initialized)",
+            "Audit log enhancements (IP address tracking, detail modal)",
+            "Fixed SQLAlchemy and datetime deprecation warnings",
+            "Multi-level log files (all, error, debug) with auto-rotation",
+            "Detailed tracking of MCP calls, AI calls, and tool calls"
+        ]
+    },
     "2.3.0": {
         "date": "2025-09-30",
         "features": [
