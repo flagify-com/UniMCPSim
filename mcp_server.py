@@ -21,6 +21,7 @@ from pydantic import BaseModel
 from models import db_manager, ApplicationTemplate, Action, ActionParameter, Application
 from ai_generator import ai_generator
 from version import get_version
+from logger_utils import mcp_logger
 
 load_dotenv()
 
@@ -258,24 +259,51 @@ def handle_mcp_request(data: dict, session_id: str = None, app_context: dict = N
             # 处理应用特定的工具调用
             app = app_context['app']
             token = app_context.get('token')
-            result = simulator.process_request(
-                app.category,
-                app.name,
-                tool_name,  # 工具名称就是action名称
-                arguments,
-                token
-            )
+            app_path = f"{app.category}/{app.name}"
 
-            return {
-                "jsonrpc": "2.0",
-                "id": request_id,
-                "result": {
-                    "content": [{
-                        "type": "text",
-                        "text": json.dumps(result, ensure_ascii=False, indent=2)
-                    }]
+            try:
+                result = simulator.process_request(
+                    app.category,
+                    app.name,
+                    tool_name,  # 工具名称就是action名称
+                    arguments,
+                    token
+                )
+
+                # 判断是否成功
+                success = 'error' not in result or result.get('code', 200) < 400
+
+                # 记录工具调用
+                mcp_logger.log_tool_call(
+                    tool_name=tool_name,
+                    arguments=arguments,
+                    result=result,
+                    success=success,
+                    error=result.get('error') if not success else None,
+                    app_path=app_path
+                )
+
+                return {
+                    "jsonrpc": "2.0",
+                    "id": request_id,
+                    "result": {
+                        "content": [{
+                            "type": "text",
+                            "text": json.dumps(result, ensure_ascii=False, indent=2)
+                        }]
+                    }
                 }
-            }
+
+            except Exception as e:
+                error_msg = str(e)
+                mcp_logger.log_tool_call(
+                    tool_name=tool_name,
+                    arguments=arguments,
+                    success=False,
+                    error=error_msg,
+                    app_path=app_path
+                )
+                raise
 
     return {
         "jsonrpc": "2.0",
@@ -297,17 +325,38 @@ def handle_product_endpoint(product_path):
     # 解析路径：/Category/Product
     path_parts = product_path.strip('/').split('/')
     if len(path_parts) != 2:
+        mcp_logger.log_mcp_request(
+            method=request.method,
+            path=f"/{product_path}",
+            token=request.args.get('token'),
+            headers=dict(request.headers),
+            success=False,
+            error="Invalid path format. Expected: /Category/Product"
+        )
         return jsonify({"error": "Invalid path format. Expected: /Category/Product"}), 400
 
     category, product = path_parts
     token = request.args.get('token')
 
     if not token:
+        mcp_logger.log_auth_failure(
+            reason="Token required",
+            path=f"/{product_path}",
+            ip=request.remote_addr
+        )
         return jsonify({"error": "Token required"}), 401
 
     # 验证应用是否存在
     app_obj = db_manager.get_application_by_path(category, product)
     if not app_obj:
+        mcp_logger.log_mcp_request(
+            method=request.method,
+            path=f"/{product_path}",
+            token=token,
+            headers=dict(request.headers),
+            success=False,
+            error=f"Application {category}/{product} not found"
+        )
         return jsonify({"error": f"Application {category}/{product} not found"}), 404
 
     # 获取或创建会话ID
@@ -317,25 +366,51 @@ def handle_product_endpoint(product_path):
         # GET请求返回应用信息
         apps = db_manager.get_token_applications(token)
         if app_obj not in apps:
+            mcp_logger.log_auth_failure(
+                reason="Access denied - token not authorized for this app",
+                token=token,
+                path=f"/{product_path}",
+                ip=request.remote_addr
+            )
             return jsonify({"error": "Access denied"}), 403
 
         template = app_obj.template if app_obj.template else {}
         actions = template.get('actions', [])
 
-        return jsonify({
+        response_data = {
             "category": app_obj.category,
             "name": app_obj.name,
             "display_name": app_obj.display_name,
             "description": app_obj.description,
             "actions": actions
-        })
+        }
+
+        mcp_logger.log_mcp_request(
+            method=request.method,
+            path=f"/{product_path}",
+            token=token,
+            headers=dict(request.headers),
+            success=True,
+            response=response_data
+        )
+
+        return jsonify(response_data)
 
     elif request.method == 'POST':
         # POST请求处理MCP协议
         if not request.is_json:
+            mcp_logger.log_mcp_request(
+                method=request.method,
+                path=f"/{product_path}",
+                token=token,
+                headers=dict(request.headers),
+                success=False,
+                error="Content-Type must be application/json"
+            )
             return jsonify({"error": "Content-Type must be application/json"}), 400
 
         data = request.get_json()
+        mcp_method = data.get('method', 'unknown')
 
         # 创建应用上下文
         app_context = {
@@ -343,21 +418,47 @@ def handle_product_endpoint(product_path):
             'token': token
         }
 
-        # 处理MCP请求
-        response = handle_mcp_request(data, session_id, app_context)
+        try:
+            # 处理MCP请求
+            response = handle_mcp_request(data, session_id, app_context)
 
-        # 设置响应头
-        resp = Response(
-            f"event: message\ndata: {json.dumps(response, ensure_ascii=False)}\n\n",
-            content_type='text/event-stream'
-        )
+            # 记录成功的MCP调用
+            mcp_logger.log_mcp_request(
+                method=f"POST:{mcp_method}",
+                path=f"/{product_path}",
+                params=data.get('params', {}),
+                token=token,
+                headers=dict(request.headers),
+                success=True,
+                response=response
+            )
 
-        # 如果是initialize请求，设置session ID
-        if data.get('method') == 'initialize' and not session_id:
-            new_session_id = list(sessions.keys())[-1] if sessions else str(uuid.uuid4())
-            resp.headers['mcp-session-id'] = new_session_id
+            # 设置响应头
+            resp = Response(
+                f"event: message\ndata: {json.dumps(response, ensure_ascii=False)}\n\n",
+                content_type='text/event-stream'
+            )
 
-        return resp
+            # 如果是initialize请求，设置session ID
+            if data.get('method') == 'initialize' and not session_id:
+                new_session_id = list(sessions.keys())[-1] if sessions else str(uuid.uuid4())
+                resp.headers['mcp-session-id'] = new_session_id
+
+            return resp
+
+        except Exception as e:
+            error_msg = str(e)
+            mcp_logger.log_mcp_request(
+                method=f"POST:{mcp_method}",
+                path=f"/{product_path}",
+                params=data.get('params', {}),
+                token=token,
+                headers=dict(request.headers),
+                success=False,
+                error=error_msg
+            )
+            mcp_logger.error(f"MCP request processing error: {error_msg}", exc_info=True)
+            return jsonify({"error": f"Internal server error: {error_msg}"}), 500
 
 
 
@@ -389,18 +490,20 @@ def health_check():
 
 def run_mcp_server():
     """运行MCP服务器"""
-    print("Starting UniMCPSim MCP Server on port 8080...")
+    # 获取端口配置
+    port = int(os.getenv('MCP_SERVER_PORT', '9090'))
+    print(f"Starting UniMCPSim MCP Server on port {port}...")
 
     # 初始化数据库
     db_manager.create_default_admin()
 
     print("Server endpoints:")
-    print("- Product-specific: http://localhost:8080/<Category>/<Product>?token=<token>")
-    print("- Example: http://localhost:8080/IM/WeChat?token=<token>")
+    print(f"- Product-specific: http://localhost:{port}/<Category>/<Product>?token=<token>")
+    print(f"- Example: http://localhost:{port}/IM/WeChat?token=<token>")
     print("- CORS enabled for all origins")
 
     # 运行Flask服务器
-    app.run(host='0.0.0.0', port=8080, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 
 if __name__ == "__main__":
