@@ -29,13 +29,18 @@ UniMCPSim/
 │
 ├── Web Interface
 │   ├── templates/          # HTML templates (Jinja2)
-│   │   ├── login.html
-│   │   ├── dashboard.html
-│   │   ├── apps.html
-│   │   └── tokens.html
+│   │   ├── _navigation.html    # Navigation component
+│   │   ├── _footer.html        # Footer component
+│   │   ├── login.html          # Login page
+│   │   ├── dashboard.html      # Dashboard
+│   │   ├── apps.html           # App management
+│   │   ├── tokens.html         # Token management
+│   │   ├── prompts.html        # Prompt template management
+│   │   ├── logs.html           # Audit logs
+│   │   └── change_password.html # Password change
 │   └── static/            # CSS, JS, Monaco editor
-│       ├── css/
-│       └── js/
+│       ├── css/main.css   # Unified styles
+│       └── js/            # Monaco editor
 │
 ├── Initialization & Utilities
 │   ├── init_simulators.py   # Initialize default simulators (9 products)
@@ -73,7 +78,7 @@ UniMCPSim/
 ### Database
 - **Type**: SQLite (with SQLAlchemy ORM)
 - **Location**: `data/unimcp.db` (auto-created)
-- **Models**: Users, Tokens, Apps, Actions, AuditLogs
+- **Models**: Users, Tokens, Applications, AppPermissions, PromptTemplates, AuditLogs
 
 ### Authentication
 - **Admin Login**: Session-based with password hashing
@@ -133,8 +138,8 @@ python tests/simple_test.py
 # End-to-end test
 python tests/test_e2e.py
 
-# Direct MCP test
-python test_mcp_direct.py
+# Product endpoints test
+python tests/test_product_endpoints.py
 ```
 
 ### Admin Operations
@@ -167,9 +172,12 @@ python reset_admin_password.py
 
 ### Admin API Endpoints (Port 8081)
 - `/admin/login` - Admin login page
-- `/admin/dashboard` - System overview
-- `/admin/apps` - Manage applications
-- `/admin/tokens` - Manage access tokens
+- `/admin/` - Dashboard with system overview
+- `/admin/apps` - Application management
+- `/admin/tokens` - Token management
+- `/admin/prompts` - Prompt template management
+- `/admin/logs` - Audit logs
+- `/admin/change-password` - Password change
 - `/admin/api/*` - REST API for admin operations
 
 ## MCP Client Configuration
@@ -196,10 +204,34 @@ python reset_admin_password.py
 - Each token can have specific permissions per app
 - Tokens are stored in database with enabled/disabled status
 
+### Token Permission Management (New Feature)
+- **Visual Modal Interface**: Click "查看" button to view/edit token permissions
+- **Batch Operations**: "全选/取消全选" button for quick permission assignment
+- **Real-time Updates**: PUT `/admin/api/tokens/<id>/apps` endpoint for updating permissions
+- **Permission Display**: Shows count of authorized apps in token list
+
+### App Details Viewer (New Feature)
+- **Clickable App Names**: Click any app name in the table to view full details
+- **Comprehensive Information**: Shows metadata, description, and complete action list
+- **Parameter Details**: Displays each action's parameters with type and requirement info
+- **Modal Display**: Clean modal interface for easy viewing
+
+### MCP Configuration Generator (New Feature)
+- **One-Click Generation**: "MCP配置" button generates standard MCP client config
+- **Format**: Compatible with Cherry Studio, Claude Desktop, and Cline
+- **Token Placeholder**: Uses `YOUR_TOKEN_HERE` to remind users to fill in actual token
+- **Copy Function**: One-click copy to clipboard with reminder message
+
 ### AI Action Generation
 - When creating new apps, AI can auto-generate action definitions
 - Uses database templates for consistent formatting
 - Requires OpenAI API configuration in `.env`
+
+### Prompt Template Management
+- System provides default templates for action generation and response simulation
+- Templates support variables: `{app_name}`, `{action_name}`, `{parameters}`, etc.
+- Users can view and edit template content (metadata is read-only)
+- Templates are stored in database and loaded on startup
 
 ### Session Management
 - MCP sessions use `mcp-session-id` header
@@ -215,11 +247,14 @@ python reset_admin_password.py
 ## Development Guidelines
 
 ### Adding New Simulators
-1. Via Web Admin:
+1. Via Web Admin (Recommended):
    - Login to admin panel
    - Go to "应用管理" (Apps)
    - Click "创建新应用" (Create New App)
-   - Fill details and use AI to generate actions
+   - Fill details: category, name, display_name, description
+   - Use AI to auto-generate action definitions from natural language prompts
+   - Click app name to view details after creation
+   - Use "MCP配置" button to generate client configuration
 
 2. Via Code:
    - Add to `init_simulators.py`
@@ -303,13 +338,17 @@ The `soar-mcp/` subdirectory contains a specialized MCP server for SOAR platform
 
 ## Project Status
 
-Current Version: **v2.0.0**
+Current Version: **v2.1.0**
 - ✅ Core MCP simulator fully functional
 - ✅ 9 pre-configured product simulators
 - ✅ AI-enhanced response generation
-- ✅ Web admin interface
-- ✅ Token-based authentication
-- ✅ Cherry Studio integration tested
+- ✅ Enhanced Web admin interface with modern UI
+- ✅ Token permission management with visual modal interface
+- ✅ App details viewer with complete action information
+- ✅ One-click MCP configuration generator
+- ✅ Prompt template management system
+- ✅ Unified navigation and footer components
+- ✅ Cherry Studio/Claude Desktop/Cline integration tested
 - ✅ Comprehensive test coverage
 
 ## Quick Test Commands
