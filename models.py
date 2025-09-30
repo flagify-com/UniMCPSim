@@ -8,8 +8,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, Column, String, Text, DateTime, Boolean, Integer, ForeignKey, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, Session
+from sqlalchemy.orm import sessionmaker, relationship, Session, declarative_base
 from pydantic import BaseModel, Field
 
 Base = declarative_base()
@@ -137,6 +136,12 @@ class DatabaseManager:
     """数据库管理器"""
 
     def __init__(self, db_url: str = 'sqlite:///data/unimcp.db'):
+        # 确保 data 目录存在
+        import os
+        db_dir = os.path.dirname(db_url.replace('sqlite:///', ''))
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+
         self.engine = create_engine(db_url, echo=False)
         Base.metadata.create_all(self.engine)
         self.SessionLocal = sessionmaker(bind=self.engine)
