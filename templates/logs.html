@@ -31,7 +31,7 @@
         .json-viewer-container {
             border: 1px solid var(--bg-300);
             border-radius: 6px;
-            height: 300px;
+            height: 450px;
             width: 100%;
             overflow: hidden;
         }
@@ -68,37 +68,37 @@
                 <h3 class="modal-title">操作日志详情</h3>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-                <div>
-                    <div class="log-detail-section">
-                        <div class="log-detail-label">时间</div>
-                        <div class="log-detail-value" id="detailTimestamp"></div>
-                    </div>
-                    <div class="log-detail-section">
-                        <div class="log-detail-label">应用</div>
-                        <div class="log-detail-value" id="detailAppName"></div>
-                    </div>
+            <!-- 基本信息 -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="log-detail-section">
+                    <div class="log-detail-label">时间</div>
+                    <div class="log-detail-value" id="detailTimestamp"></div>
                 </div>
-                <div>
-                    <div class="log-detail-section">
-                        <div class="log-detail-label">操作</div>
-                        <div class="log-detail-value" id="detailAction"></div>
-                    </div>
-                    <div class="log-detail-section">
-                        <div class="log-detail-label">IP地址</div>
-                        <div class="log-detail-value" id="detailIpAddress"></div>
-                    </div>
+                <div class="log-detail-section">
+                    <div class="log-detail-label">应用</div>
+                    <div class="log-detail-value" id="detailAppName"></div>
+                </div>
+                <div class="log-detail-section">
+                    <div class="log-detail-label">操作</div>
+                    <div class="log-detail-value" id="detailAction"></div>
+                </div>
+                <div class="log-detail-section">
+                    <div class="log-detail-label">IP地址</div>
+                    <div class="log-detail-value" id="detailIpAddress"></div>
                 </div>
             </div>
 
-            <div class="log-detail-section">
-                <div class="log-detail-label">请求参数</div>
-                <div id="detailParametersEditor" class="json-viewer-container"></div>
-            </div>
+            <!-- 请求与响应左右展示 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div class="log-detail-section">
+                    <div class="log-detail-label">请求参数</div>
+                    <div id="detailParametersEditor" class="json-viewer-container"></div>
+                </div>
 
-            <div class="log-detail-section">
-                <div class="log-detail-label">响应结果</div>
-                <div id="detailResponseEditor" class="json-viewer-container"></div>
+                <div class="log-detail-section">
+                    <div class="log-detail-label">响应结果</div>
+                    <div id="detailResponseEditor" class="json-viewer-container"></div>
+                </div>
             </div>
 
             <div class="d-flex gap-2" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--bg-300);">
