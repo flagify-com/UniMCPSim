@@ -127,7 +127,7 @@ def get_apps():
     """获取应用列表"""
     session_db = db_manager.get_session()
     try:
-        apps = session_db.query(Application).all()
+        apps = session_db.query(Application).order_by(Application.id.desc()).all()
         return jsonify([{
             'id': app.id,
             'name': app.name,
