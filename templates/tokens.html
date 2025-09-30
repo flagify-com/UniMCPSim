@@ -48,7 +48,10 @@
                     <input type="text" name="name" class="form-control" required placeholder="例如：测试Token">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">授权应用</label>
+                    <div class="d-flex justify-between align-center" style="margin-bottom: 0.5rem;">
+                        <label class="form-label" style="margin: 0;">授权应用</label>
+                        <button type="button" onclick="toggleAllApps('create')" class="btn btn-sm btn-secondary">全选/取消全选</button>
+                    </div>
                     <div id="appPermissions" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--bg-300); padding: 10px; border-radius: 4px;">
                         <!-- 动态加载应用列表 -->
                     </div>
@@ -56,6 +59,33 @@
                 <div class="d-flex gap-2">
                     <button type="submit" class="btn btn-primary">生成Token</button>
                     <button type="button" onclick="hideModal()" class="btn btn-secondary">取消</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 权限管理模态框 -->
+    <div id="permissionModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Token权限管理</h3>
+            <form id="permissionForm">
+                <input type="hidden" id="editTokenId" value="">
+                <div class="form-group">
+                    <label class="form-label">Token名称</label>
+                    <input type="text" id="editTokenName" class="form-control" readonly style="background-color: var(--bg-200);">
+                </div>
+                <div class="form-group">
+                    <div class="d-flex justify-between align-center" style="margin-bottom: 0.5rem;">
+                        <label class="form-label" style="margin: 0;">授权应用</label>
+                        <button type="button" onclick="toggleAllApps('edit')" class="btn btn-sm btn-secondary">全选/取消全选</button>
+                    </div>
+                    <div id="editAppPermissions" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--bg-300); padding: 10px; border-radius: 4px;">
+                        <!-- 动态加载应用列表 -->
+                    </div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-primary">保存权限</button>
+                    <button type="button" onclick="hidePermissionModal()" class="btn btn-secondary">取消</button>
                 </div>
             </form>
         </div>
@@ -209,10 +239,89 @@
         }
 
         async function showPermissions(tokenId) {
-            const response = await fetch(`/admin/api/tokens/${tokenId}/apps`);
-            const apps = await response.json();
-            alert('授权应用:\n' + apps.map(app => `- ${app.display_name}`).join('\n'));
+            try {
+                // 获取token信息
+                const tokenResponse = await fetch('/admin/api/tokens');
+                const tokens = await tokenResponse.json();
+                const token = tokens.find(t => t.id === tokenId);
+
+                if (!token) {
+                    alert('Token不存在');
+                    return;
+                }
+
+                // 获取当前授权的应用
+                const appsResponse = await fetch(`/admin/api/tokens/${tokenId}/apps`);
+                const authorizedApps = await appsResponse.json();
+                const authorizedAppIds = authorizedApps.map(app => app.id);
+
+                // 填充表单
+                document.getElementById('editTokenId').value = tokenId;
+                document.getElementById('editTokenName').value = token.name;
+
+                // 加载所有应用并标记已授权的
+                const allAppsResponse = await fetch('/admin/api/apps');
+                const allApps = await allAppsResponse.json();
+                const container = document.getElementById('editAppPermissions');
+
+                container.innerHTML = allApps.map(app => `
+                    <label style="display: block; margin: 5px 0;">
+                        <input type="checkbox" name="editApps" value="${app.id}"
+                               ${authorizedAppIds.includes(app.id) ? 'checked' : ''}>
+                        ${app.display_name} (/${app.category}/${app.name})
+                    </label>
+                `).join('');
+
+                // 显示模态框
+                document.getElementById('permissionModal').classList.add('show');
+            } catch (error) {
+                console.error('Failed to load permissions:', error);
+                alert('加载权限失败');
+            }
         }
+
+        function hidePermissionModal() {
+            document.getElementById('permissionModal').classList.remove('show');
+        }
+
+        function toggleAllApps(mode) {
+            const containerSelector = mode === 'create' ? '#appPermissions' : '#editAppPermissions';
+            const checkboxes = document.querySelectorAll(`${containerSelector} input[type="checkbox"]`);
+            const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+
+            checkboxes.forEach(cb => {
+                cb.checked = !allChecked;
+            });
+        }
+
+        document.getElementById('permissionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const tokenId = document.getElementById('editTokenId').value;
+            const selectedApps = Array.from(document.querySelectorAll('#editAppPermissions input[name="editApps"]:checked'))
+                .map(cb => parseInt(cb.value));
+
+            try {
+                const response = await fetch(`/admin/api/tokens/${tokenId}/apps`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        app_ids: selectedApps
+                    })
+                });
+
+                if (response.ok) {
+                    hidePermissionModal();
+                    loadTokens();
+                    alert('权限更新成功');
+                } else {
+                    const error = await response.json();
+                    alert('更新失败: ' + (error.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Failed to update permissions:', error);
+                alert('更新失败');
+            }
+        });
 
         loadTokens();
     </script>

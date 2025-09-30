@@ -342,6 +342,31 @@ def get_token_apps(token_id):
     finally:
         session_db.close()
 
+@app.route('/admin/api/tokens/<int:token_id>/apps', methods=['PUT'])
+@login_required
+def update_token_apps(token_id):
+    """更新Token授权的应用"""
+    session_db = db_manager.get_session()
+    try:
+        data = request.get_json()
+        app_ids = data.get('app_ids', [])
+
+        # 删除现有权限
+        session_db.query(AppPermission).filter_by(token_id=token_id).delete()
+
+        # 添加新权限
+        for app_id in app_ids:
+            permission = AppPermission(token_id=token_id, application_id=app_id)
+            session_db.add(permission)
+
+        session_db.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        session_db.rollback()
+        return jsonify({'error': str(e)}), 400
+    finally:
+        session_db.close()
+
 @app.route('/admin/api/logs', methods=['GET'])
 @login_required
 def get_logs():
