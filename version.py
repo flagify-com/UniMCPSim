@@ -3,11 +3,21 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.2.0"
-__version_info__ = (2, 2, 0)
+__version__ = "2.3.0"
+__version_info__ = (2, 3, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.3.0": {
+        "date": "2025-09-30",
+        "features": [
+            "Removed soar-mcp reference project (~4.1MB, 45K+ lines)",
+            "Cleaned up temporary debug and utility scripts",
+            "Removed unused database.db file",
+            "Updated documentation to focus on UniMCPSim core",
+            "Project codebase simplified and streamlined"
+        ]
+    },
     "2.2.0": {
         "date": "2025-09-30",
         "features": [
