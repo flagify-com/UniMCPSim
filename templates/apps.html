@@ -541,7 +541,7 @@
                             "type": "streamableHttp",
                             "description": app.description || app.display_name,
                             "isActive": true,
-                            "baseUrl": `http://127.0.0.1:8080/${app.category}/${app.name}?token=YOUR_TOKEN_HERE`
+                            "baseUrl": `http://127.0.0.1:{{ mcp_port }}/${app.category}/${app.name}?token=YOUR_TOKEN_HERE`
                         }
                     }
                 };

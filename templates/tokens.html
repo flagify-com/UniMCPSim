@@ -203,7 +203,7 @@
                 if (data.token) {
                     hideModal();
                     document.getElementById('newTokenValue').value = data.token;
-                    document.getElementById('mcpUrl').value = `http://localhost:8080/mcp?token=${data.token}`;
+                    document.getElementById('mcpUrl').value = `http://localhost:{{ mcp_port }}/mcp?token=${data.token}`;
                     document.getElementById('tokenModal').classList.add('show');
                     loadTokens();
                 }

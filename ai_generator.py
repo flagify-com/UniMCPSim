@@ -6,10 +6,12 @@ AI响应生成器
 import os
 import json
 import random
+import time
 from typing import Dict, Any, Optional, List
 from openai import OpenAI
 from dotenv import load_dotenv
 from models import DatabaseManager
+from logger_utils import mcp_logger
 
 load_dotenv()
 
@@ -70,31 +72,67 @@ class AIResponseGenerator:
 
 直接返回JSON，不要任何其他说明文字。"""
 
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": "你是一个API响应模拟器，返回符合规范的JSON数据。"},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=1000
-            )
+            start_time = time.time()
 
-            # 解析响应
-            result = response.choices[0].message.content
             try:
-                return json.loads(result)
-            except json.JSONDecodeError:
-                # 如果解析失败，清理并重试
-                result = result.strip()
-                if result.startswith("```json"):
-                    result = result[7:]
-                if result.endswith("```"):
-                    result = result[:-3]
-                return json.loads(result.strip())
+                response = self.client.chat.completions.create(
+                    model=self.model,
+                    messages=[
+                        {"role": "system", "content": "你是一个API响应模拟器,返回符合规范的JSON数据。"},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=0.7,
+                    max_tokens=1000
+                )
+
+                duration = time.time() - start_time
+
+                # 解析响应
+                result = response.choices[0].message.content
+
+                # 记录成功的 AI 调用
+                mcp_logger.log_ai_call(
+                    provider="OpenAI",
+                    model=self.model,
+                    prompt=prompt,
+                    response=result,
+                    success=True,
+                    duration=duration,
+                    usage={
+                        'prompt_tokens': response.usage.prompt_tokens if response.usage else None,
+                        'completion_tokens': response.usage.completion_tokens if response.usage else None,
+                        'total_tokens': response.usage.total_tokens if response.usage else None
+                    }
+                )
+
+                try:
+                    return json.loads(result)
+                except json.JSONDecodeError:
+                    # 如果解析失败，清理并重试
+                    result = result.strip()
+                    if result.startswith("```json"):
+                        result = result[7:]
+                    if result.endswith("```"):
+                        result = result[:-3]
+                    return json.loads(result.strip())
+
+            except Exception as e:
+                duration = time.time() - start_time
+                error_msg = str(e)
+
+                # 记录失败的 AI 调用
+                mcp_logger.log_ai_call(
+                    provider="OpenAI",
+                    model=self.model,
+                    prompt=prompt,
+                    success=False,
+                    error=error_msg,
+                    duration=duration
+                )
+                raise
 
         except Exception as e:
-            print(f"AI generation failed: {e}")
+            mcp_logger.error(f"AI generation failed: {e}", exc_info=True)
             return self._generate_default_response(app_name, action, parameters)
 
     def _generate_default_response(self, app_name: str, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:

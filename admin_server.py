@@ -46,6 +46,9 @@ def dashboard():
             AuditLog.timestamp >= datetime.combine(today, datetime.min.time())
         ).count()
 
+        # 获取端口配置
+        mcp_port = os.getenv('MCP_SERVER_PORT', '9090')
+
         return render_template('dashboard.html',
                              username=session.get('username'),
                              app_count=app_count,
@@ -53,6 +56,7 @@ def dashboard():
                              log_count=log_count,
                              start_time=START_TIME.strftime('%Y-%m-%d %H:%M:%S'),
                              version=get_version(),
+                             mcp_port=mcp_port,
                              active_page='dashboard')
     finally:
         session_db.close()
@@ -61,13 +65,15 @@ def dashboard():
 @login_required
 def apps_page():
     """应用管理页面"""
-    return render_template('apps.html', username=session.get('username'), active_page='apps')
+    mcp_port = os.getenv('MCP_SERVER_PORT', '9090')
+    return render_template('apps.html', username=session.get('username'), active_page='apps', mcp_port=mcp_port)
 
 @app.route('/admin/tokens')
 @login_required
 def tokens_page():
     """Token管理页面"""
-    return render_template('tokens.html', username=session.get('username'), active_page='tokens')
+    mcp_port = os.getenv('MCP_SERVER_PORT', '9090')
+    return render_template('tokens.html', username=session.get('username'), active_page='tokens', mcp_port=mcp_port)
 
 @app.route('/admin/logs')
 @login_required
@@ -121,7 +127,7 @@ def get_apps():
     """获取应用列表"""
     session_db = db_manager.get_session()
     try:
-        apps = session_db.query(Application).all()
+        apps = session_db.query(Application).order_by(Application.id.desc()).all()
         return jsonify([{
             'id': app.id,
             'name': app.name,
@@ -405,9 +411,13 @@ def check_mcp_status():
     import requests
 
     try:
+        # 获取MCP端口配置
+        mcp_port = os.getenv('MCP_SERVER_PORT', '9090')
+        mcp_url = f'http://127.0.0.1:{mcp_port}/health'
+
         # 检查本地MCP服务器状态
-        print("Attempting to connect to MCP server at http://127.0.0.1:8080/health")
-        response = requests.get('http://127.0.0.1:8080/health', timeout=3, proxies={"http": None, "https": None})
+        print(f"Attempting to connect to MCP server at {mcp_url}")
+        response = requests.get(mcp_url, timeout=3, proxies={"http": None, "https": None})
         print(f"MCP health check: status={response.status_code}, content_length={len(response.content)}")
         if response.status_code == 200:
             health_data = response.json()
@@ -710,9 +720,11 @@ def api_change_password():
 
 def run_admin_server():
     """运行管理后台服务器"""
-    print("Starting UniMCPSim Admin Server on port 8081...")
+    # 获取端口配置
+    port = int(os.getenv('ADMIN_SERVER_PORT', '9091'))
+    print(f"Starting UniMCPSim Admin Server on port {port}...")
     db_manager.create_default_admin()
-    app.run(host='0.0.0.0', port=8081, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 if __name__ == "__main__":
     run_admin_server()

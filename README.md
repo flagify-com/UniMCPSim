@@ -6,8 +6,9 @@ UniMCPSim是一个通用的MCP（Model Context Protocol）模拟器，可以动�
 
 - **通用MCP模拟器**：基于FastMCP框架，支持标准MCP协议
 - **多产品支持**：预置9个常用产品模拟器，涵盖安全、通讯、网络、工单等领域
-- **AI增强响应**：集成OpenAI API，生成真实的模拟响应数据
+- **AI增强响应**：兼容OpenAI API接口（支持OpenAI、Qwen、Deepseek、Claude、Gemini等），生成真实的模拟响应数据
 - **智能动作生成**：基于数据库提示词模板，AI自动生成API动作定义
+- **增强日志系统**：详细记录所有MCP调用、AI调用、认证失败等，支持DEBUG模式
 - **Web管理界面**：提供完整的Web后台管理系统
 - **Token权限管理**：支持Token认证和细粒度权限控制
 - **模板驱动**：支持自定义提示词模板，快速创建新的应用模拟器
@@ -23,9 +24,15 @@ UniMCPSim/
 ├── models.py                # 数据库模型定义
 ├── auth_utils.py            # 认证工具
 ├── ai_generator.py          # AI响应生成器
+├── logger_utils.py          # 增强日志系统
 ├── start_servers.py         # 服务启动脚本
+├── migrate_prompt_templates.py  # 数据库迁移脚本
 ├── data/                    # 数据目录
 │   └── unimcp.db           # SQLite数据库 (自动创建)
+├── logs/                    # 日志目录 (自动创建)
+│   ├── unimcp_all.log      # 所有日志
+│   ├── unimcp_error.log    # 错误日志
+│   └── unimcp_debug.log    # DEBUG详细日志
 ├── static/                  # 静态资源
 │   └── css/
 │       └── main.css        # 统一CSS样式
@@ -84,9 +91,16 @@ UniMCPSim采用分层架构设计，清晰划分各组件职责，确保系统�
 
 #### 3. **服务层 (Service Layer)**
 - **AI响应生成器** (`ai_generator.py`)
-  - 集成OpenAI API
+  - 兼容OpenAI API接口（支持OpenAI、Qwen、Deepseek、Claude、Gemini等）
   - 智能生成模拟响应数据
   - 基于提示词模板动态生成动作定义
+  - 详细记录AI调用信息（耗时、token使用量等）
+
+- **增强日志系统** (`logger_utils.py`)
+  - 多层级日志文件（all/error/debug）
+  - 详细记录MCP调用、AI调用、工具调用等
+  - 支持DEBUG模式，记录完整调用详情
+  - 日志自动轮转（10MB/文件，保留5个备份）
 
 - **认证工具** (`auth_utils.py`)
   - 密码哈希和验证
@@ -153,17 +167,29 @@ unset HTTP_PROXY
 ```bash
 # 创建.env文件
 cat > .env << 'EOF'
-# OpenAI API配置（必需）
-OPENAI_API_KEY=your_openai_api_key_here
+# AI API配置（必需，兼容OpenAI API接口）
+# 支持OpenAI、Qwen、Deepseek、Claude、Gemini等所有兼容OpenAI API的服务
+OPENAI_API_KEY=your_api_key_here
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_API_BASE_URL=https://api.openai.com/v1
+
+# 服务端口配置（可选）
+MCP_SERVER_PORT=9090
+ADMIN_SERVER_PORT=9091
+
+# 日志配置（可选）
+DEBUG=false              # 启用DEBUG模式记录详细调用信息
+LOG_LEVEL=INFO          # 日志级别: DEBUG, INFO, WARNING, ERROR
+LOG_DIR=logs            # 日志文件存储目录
 EOF
 ```
 
 ⚠️ **注意**：
-- 请将`your_openai_api_key_here`替换为您的真实OpenAI API密钥
-- 从v2.0开始，系统使用AI智能生成动作定义，必须配置OpenAI API
+- 请将`your_api_key_here`替换为您的真实API密钥
+- 支持任何兼容OpenAI API接口的服务（OpenAI、Qwen、Deepseek、Claude、Gemini等）
+- 从v2.0开始，系统使用AI智能生成动作定义，必须配置AI API
 - 如果没有配置，新建应用功能将无法正常工作
+- 启用`DEBUG=true`可记录完整的调用详情，包括完整token、headers、AI prompt等（仅用于排查问题）
 
 ### 3. 启动服务
 
@@ -969,6 +995,38 @@ rm -f data/unimcp.db
 python init_simulators.py
 ```
 
+#### 升级到新版本（v2.4.0+）
+
+如果从旧版本升级到 v2.4.0+，需要迁移提示词模板以支持新的动作定义功能：
+
+```bash
+# 1. 停止服务
+# 按 Ctrl+C 停止正在运行的服务
+
+# 2. 更新代码
+git pull  # 如果使用git
+
+# 3. 运行迁移脚本
+python migrate_prompt_templates.py
+
+# 4. 验证迁移结果
+# 脚本会自动验证并显示迁移是否成功
+
+# 5. 重启服务
+python start_servers.py
+```
+
+**迁移脚本说明**：
+- 自动更新 `response_simulation` 提示词模板
+- 添加 `{action_definition}` 变量支持
+- 备份旧模板内容
+- 验证迁移结果
+
+**注意事项**：
+- 如果模板已包含 `action_definition` 变量，脚本会跳过更新
+- 全新安装的系统无需运行此迁移脚本
+- 迁移失败不会影响原有数据
+
 ## 🎯 成功标志
 
 看到以下输出表示系统运行正常：
@@ -1032,6 +1090,131 @@ async def your_new_tool(param1: str, param2: int) -> str:
 - ✅ Token权限管理
 - ✅ AI增强响应生成
 - ✅ 综合测试覆盖
+
+## 📊 日志系统
+
+UniMCPSim v2.3+ 引入了增强的日志系统，帮助您更好地诊断和监控系统运行。
+
+### 日志文件
+
+所有日志文件存储在 `logs/` 目录（可通过环境变量 `LOG_DIR` 自定义）：
+
+- **`unimcp_all.log`** - 所有日志（INFO及以上级别）
+  - 记录所有成功和失败的请求
+  - 包含基本的调用信息（路径、方法、token前8位等）
+  - 适合日常监控和审计
+
+- **`unimcp_error.log`** - 错误日志
+  - 只记录错误和警告
+  - 快速定位问题
+  - 包含详细的错误堆栈信息
+
+- **`unimcp_debug.log`** - DEBUG详细日志（仅在DEBUG模式下生成）
+  - 记录完整的调用详情
+  - 包含完整token、HTTP headers、完整请求/响应内容
+  - AI调用的完整prompt和response
+  - 数据库操作详情
+  - 仅用于排查复杂问题
+
+### 记录内容
+
+#### 1. MCP Server调用
+```
+2025-09-30 16:05:12 - INFO - MCP Request: POST:tools/list /ThreatIntelligence/Threatbook - SUCCESS
+```
+记录信息：
+- 请求方法和MCP方法名
+- 应用路径
+- Token（默认只记录前8位）
+- 请求参数
+- 是否成功
+- 错误信息（如果失败）
+
+#### 2. AI模型调用
+```
+2025-09-30 16:10:30 - INFO - AI Call: OpenAI/qwen3-max - SUCCESS (duration: 1.23s)
+```
+记录信息：
+- AI提供商和模型
+- 调用耗时
+- Token使用量（prompt_tokens、completion_tokens）
+- DEBUG模式下记录完整的prompt和response
+
+#### 3. 工具调用
+```
+2025-09-30 16:12:15 - INFO - Tool Call: query_ip_threat_intel (app: ThreatIntelligence/Threatbook) - SUCCESS
+```
+记录信息：
+- 工具名称
+- 所属应用
+- 参数
+- 执行结果
+- 错误信息（如果失败）
+
+#### 4. 认证失败
+```
+2025-09-30 16:15:00 - WARNING - Auth Failure: Token required (path: /IM/WeChat, ip: 127.0.0.1)
+```
+记录信息：
+- 失败原因
+- 访问路径
+- 客户端IP
+- Token信息（如有）
+
+### DEBUG模式
+
+启用DEBUG模式可记录更详细的诊断信息：
+
+```bash
+# 在 .env 文件中设置
+DEBUG=true
+LOG_LEVEL=DEBUG
+```
+
+DEBUG模式额外记录：
+- ✅ 完整的API Token（非DEBUG只记录前8位）
+- ✅ 完整的HTTP Headers
+- ✅ 完整的请求和响应内容
+- ✅ AI调用的完整prompt和response
+- ✅ 数据库操作详情
+
+⚠️ **安全提醒**：
+- DEBUG模式会记录敏感信息（token、prompt等），仅在开发和排查问题时启用
+- 生产环境请使用 `DEBUG=false`
+- 日志文件已自动添加到 `.gitignore`，不会被提交到版本控制
+
+### 日志轮转
+
+日志系统自动进行文件轮转：
+- 单个日志文件最大 10MB
+- 保留最近 5 个备份文件
+- 自动压缩和清理旧日志
+
+### 使用场景
+
+1. **监控MCP调用**
+   ```bash
+   # 实时查看所有请求
+   tail -f logs/unimcp_all.log
+
+   # 只看错误
+   tail -f logs/unimcp_error.log
+   ```
+
+2. **排查Cherry Studio调用问题**
+   - 启用DEBUG模式
+   - 查看 `unimcp_debug.log` 中的完整headers和session ID
+   - 确认是否真正调用了MCP Server
+
+3. **诊断AI响应问题**
+   - 启用DEBUG模式
+   - 查看AI调用的完整prompt和response
+   - 检查token使用量和耗时
+
+4. **审计和安全**
+   - 查看认证失败记录
+   - 追踪特定token的使用情况
+   - 监控异常访问模式
 
 ## 🤝 贡献
 

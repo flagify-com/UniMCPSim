@@ -8,7 +8,11 @@ import sys
 import time
 import threading
 import subprocess
+from dotenv import load_dotenv
 from init_simulators import init_default_simulators
+
+# 加载环境变量
+load_dotenv()
 
 def run_mcp_server():
     """运行MCP服务器"""
@@ -46,10 +50,14 @@ def main():
     admin_thread.daemon = True
     admin_thread.start()
 
+    # 获取端口配置
+    mcp_port = os.getenv('MCP_SERVER_PORT', '9090')
+    admin_port = os.getenv('ADMIN_SERVER_PORT', '9091')
+
     print("\n服务已启动:")
     print("-" * 60)
-    print("MCP服务器: http://localhost:8080/mcp")
-    print("管理后台: http://localhost:8081/admin/")
+    print(f"MCP服务器: http://localhost:{mcp_port}/mcp")
+    print(f"管理后台: http://localhost:{admin_port}/admin/")
     print("默认账号: admin / admin123")
     print("-" * 60)
     print("\n按 Ctrl+C 停止服务")

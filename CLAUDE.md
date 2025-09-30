@@ -114,8 +114,14 @@ python init_simulators.py
 python start_servers.py
 
 # Or start individually
-python mcp_server.py     # MCP server on port 8080
-python admin_server.py   # Admin UI on port 8081
+python mcp_server.py     # MCP server on port 9090 (default)
+python admin_server.py   # Admin UI on port 9091 (default)
+```
+
+**Note**: Default ports are 9090 (MCP) and 9091 (Admin). You can customize ports in `.env`:
+```
+MCP_SERVER_PORT=9090
+ADMIN_SERVER_PORT=9091
 ```
 
 ### Testing
@@ -136,16 +142,16 @@ python tests/test_product_endpoints.py
 python reset_admin_password.py
 
 # Access admin interface
-# Browser: http://localhost:8081/admin/
+# Browser: http://localhost:9091/admin/ (default port)
 # Login: admin / admin123
 ```
 
 ## API Endpoints
 
-### MCP Server Endpoints (Port 8080)
+### MCP Server Endpoints (Default Port 9090)
 
 #### Product-Specific Endpoints
-- **Format**: `http://localhost:8080/{Category}/{Product}?token={token}`
+- **Format**: `http://localhost:9090/{Category}/{Product}?token={token}`
 - **Examples**:
   - `/IM/WeChat?token=xxx` - WeChat Work API
   - `/Security/VirusTotal?token=xxx` - VirusTotal API
@@ -158,7 +164,7 @@ python reset_admin_password.py
 - `resources/list` - List available resources
 - `prompts/list` - List available prompts
 
-### Admin API Endpoints (Port 8081)
+### Admin API Endpoints (Default Port 9091)
 - `/admin/login` - Admin login page
 - `/admin/` - Dashboard with system overview
 - `/admin/apps` - Application management
@@ -179,7 +185,7 @@ python reset_admin_password.py
       "type": "http",
       "name": "企业微信模拟器",
       "description": "WeChat Work API Simulator",
-      "url": "http://127.0.0.1:8080/IM/WeChat?token=your-token-here"
+      "url": "http://127.0.0.1:9090/IM/WeChat?token=your-token-here"
     }
   }
 }
@@ -277,11 +283,15 @@ When testing changes:
 ### Port Already in Use
 ```bash
 # Check what's using ports
-lsof -i :8080
-lsof -i :8081
+lsof -i :9090
+lsof -i :9091
 
 # Kill processes if needed
 kill -9 <PID>
+
+# Or change ports in .env file
+echo "MCP_SERVER_PORT=9090" >> .env
+echo "ADMIN_SERVER_PORT=9091" >> .env
 ```
 
 ### Database Issues
@@ -335,11 +345,11 @@ Current Version: **v2.1.0**
 
 ```bash
 # Quick health check
-curl "http://localhost:8080/health"
+curl "http://localhost:9090/health"
 
 # Test with demo token (get from admin panel)
 TOKEN="your-demo-token"
-curl "http://localhost:8080/IM/WeChat?token=$TOKEN" \
+curl "http://localhost:9090/IM/WeChat?token=$TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"action": "send_message", "parameters": {"to_user": "test", "text": "Hello"}}'
 ```
