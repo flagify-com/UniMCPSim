@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>操作日志 - UniMCPSim</title>
     <link rel="stylesheet" href="/static/css/main.css">
+    <!-- Monaco Editor Local -->
+    <script src="/static/js/monaco-editor/vs/loader.js"></script>
     <style>
         .log-row {
             cursor: pointer;
@@ -13,17 +15,25 @@
         .log-row:hover {
             background-color: rgba(0, 123, 255, 0.1);
         }
-        .json-display {
-            background: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 4px;
-            padding: 12px;
-            max-height: 400px;
-            overflow-y: auto;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            font-size: 12px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+        .log-detail-section {
+            margin-bottom: 1.5rem;
+        }
+        .log-detail-label {
+            font-weight: 600;
+            color: var(--primary-100);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .log-detail-value {
+            color: var(--text-100);
+            margin-bottom: 0.5rem;
+        }
+        .json-viewer-container {
+            border: 1px solid var(--bg-300);
+            border-radius: 6px;
+            height: 300px;
+            width: 100%;
+            overflow: hidden;
         }
     </style>
 </head>
@@ -52,40 +62,47 @@
     </div>
 
     <!-- 日志详情 Modal -->
-    <div id="logDetailModal" class="modal" style="display: none;">
-        <div class="modal-dialog" style="max-width: 900px;">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">操作日志详情</h5>
-                    <button type="button" class="close" onclick="closeLogDetailModal()">
-                        <span>&times;</span>
-                    </button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <strong>时间：</strong><span id="detailTimestamp"></span>
+    <div id="logDetailModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 class="modal-title">操作日志详情</h3>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                <div>
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">时间</div>
+                        <div class="log-detail-value" id="detailTimestamp"></div>
                     </div>
-                    <div class="mb-3">
-                        <strong>应用：</strong><span id="detailAppName"></span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>操作：</strong><span id="detailAction"></span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>IP地址：</strong><span id="detailIpAddress"></span>
-                    </div>
-                    <div class="mb-3">
-                        <strong>请求参数：</strong>
-                        <div id="detailParameters" class="json-display"></div>
-                    </div>
-                    <div class="mb-3">
-                        <strong>响应结果：</strong>
-                        <div id="detailResponse" class="json-display"></div>
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">应用</div>
+                        <div class="log-detail-value" id="detailAppName"></div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="closeLogDetailModal()">关闭</button>
+                <div>
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">操作</div>
+                        <div class="log-detail-value" id="detailAction"></div>
+                    </div>
+                    <div class="log-detail-section">
+                        <div class="log-detail-label">IP地址</div>
+                        <div class="log-detail-value" id="detailIpAddress"></div>
+                    </div>
                 </div>
+            </div>
+
+            <div class="log-detail-section">
+                <div class="log-detail-label">请求参数</div>
+                <div id="detailParametersEditor" class="json-viewer-container"></div>
+            </div>
+
+            <div class="log-detail-section">
+                <div class="log-detail-label">响应结果</div>
+                <div id="detailResponseEditor" class="json-viewer-container"></div>
+            </div>
+
+            <div class="d-flex gap-2" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--bg-300);">
+                <button type="button" class="btn btn-secondary" onclick="closeLogDetailModal()">关闭</button>
             </div>
         </div>
     </div>
@@ -94,6 +111,42 @@
 
     <script>
         let currentLogs = [];
+        let parametersEditor = null;
+        let responseEditor = null;
+
+        // 初始化 Monaco Editor
+        function initMonacoEditors() {
+            require.config({ paths: { vs: '/static/js/monaco-editor/vs' } });
+            require(['vs/editor/editor.main'], function () {
+                // 参数编辑器（只读）
+                parametersEditor = monaco.editor.create(document.getElementById('detailParametersEditor'), {
+                    value: '',
+                    language: 'json',
+                    theme: 'vs-dark',
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    wordWrap: 'on',
+                    lineNumbers: 'on',
+                    folding: true
+                });
+
+                // 响应编辑器（只读）
+                responseEditor = monaco.editor.create(document.getElementById('detailResponseEditor'), {
+                    value: '',
+                    language: 'json',
+                    theme: 'vs-dark',
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    wordWrap: 'on',
+                    lineNumbers: 'on',
+                    folding: true
+                });
+            });
+        }
 
         async function loadLogs() {
             try {
@@ -127,18 +180,30 @@
         function showLogDetail(index) {
             const log = currentLogs[index];
 
+            // 更新基本信息
             document.getElementById('detailTimestamp').textContent = new Date(log.timestamp).toLocaleString();
             document.getElementById('detailAppName').textContent = log.app_name;
             document.getElementById('detailAction').textContent = log.action;
             document.getElementById('detailIpAddress').textContent = log.ip_address || 'N/A';
-            document.getElementById('detailParameters').textContent = JSON.stringify(log.parameters, null, 2);
-            document.getElementById('detailResponse').textContent = JSON.stringify(log.response, null, 2);
 
-            document.getElementById('logDetailModal').style.display = 'block';
+            // 更新 Monaco Editor 内容
+            if (parametersEditor) {
+                parametersEditor.setValue(JSON.stringify(log.parameters, null, 2));
+            }
+            if (responseEditor) {
+                responseEditor.setValue(JSON.stringify(log.response, null, 2));
+            }
+
+            // 显示 modal（使用 flex 布局居中）
+            const modal = document.getElementById('logDetailModal');
+            modal.classList.add('show');
+            modal.style.display = 'flex';
         }
 
         function closeLogDetailModal() {
-            document.getElementById('logDetailModal').style.display = 'none';
+            const modal = document.getElementById('logDetailModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
         }
 
         // 点击 modal 外部区域关闭
@@ -156,8 +221,12 @@
             }
         });
 
-        loadLogs();
-        setInterval(loadLogs, 30000); // 自动刷新，每30秒
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            initMonacoEditors();
+            loadLogs();
+            setInterval(loadLogs, 30000); // 自动刷新，每30秒
+        });
     </script>
 </body>
 </html>
