@@ -50,7 +50,8 @@ def dashboard():
                              app_count=app_count,
                              token_count=token_count,
                              log_count=log_count,
-                             start_time=START_TIME.strftime('%Y-%m-%d %H:%M:%S'))
+                             start_time=START_TIME.strftime('%Y-%m-%d %H:%M:%S'),
+                             active_page='dashboard')
     finally:
         session_db.close()
 
@@ -58,31 +59,31 @@ def dashboard():
 @login_required
 def apps_page():
     """应用管理页面"""
-    return render_template('apps.html', username=session.get('username'))
+    return render_template('apps.html', username=session.get('username'), active_page='apps')
 
 @app.route('/admin/tokens')
 @login_required
 def tokens_page():
     """Token管理页面"""
-    return render_template('tokens.html', username=session.get('username'))
+    return render_template('tokens.html', username=session.get('username'), active_page='tokens')
 
 @app.route('/admin/logs')
 @login_required
 def logs_page():
     """日志页面"""
-    return render_template('logs.html', username=session.get('username'))
+    return render_template('logs.html', username=session.get('username'), active_page='logs')
 
 @app.route('/admin/prompts')
 @login_required
 def prompts_page():
     """提示词管理页面"""
-    return render_template('prompts.html', username=session.get('username'))
+    return render_template('prompts.html', username=session.get('username'), active_page='prompts')
 
 @app.route('/admin/change-password')
 @login_required
 def change_password_page():
     """修改密码页面"""
-    return render_template('change_password.html', username=session.get('username'))
+    return render_template('change_password.html', username=session.get('username'), active_page='change_password')
 
 @app.route('/admin/logout')
 def logout():
