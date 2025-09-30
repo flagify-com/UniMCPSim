@@ -26,6 +26,7 @@ UniMCPSim/
 ├── ai_generator.py          # AI响应生成器
 ├── logger_utils.py          # 增强日志系统
 ├── start_servers.py         # 服务启动脚本
+├── migrate_prompt_templates.py  # 数据库迁移脚本
 ├── data/                    # 数据目录
 │   └── unimcp.db           # SQLite数据库 (自动创建)
 ├── logs/                    # 日志目录 (自动创建)
@@ -993,6 +994,38 @@ rm -f data/unimcp.db
 # 重新初始化
 python init_simulators.py
 ```
+
+#### 升级到新版本（v2.4.0+）
+
+如果从旧版本升级到 v2.4.0+，需要迁移提示词模板以支持新的动作定义功能：
+
+```bash
+# 1. 停止服务
+# 按 Ctrl+C 停止正在运行的服务
+
+# 2. 更新代码
+git pull  # 如果使用git
+
+# 3. 运行迁移脚本
+python migrate_prompt_templates.py
+
+# 4. 验证迁移结果
+# 脚本会自动验证并显示迁移是否成功
+
+# 5. 重启服务
+python start_servers.py
+```
+
+**迁移脚本说明**：
+- 自动更新 `response_simulation` 提示词模板
+- 添加 `{action_definition}` 变量支持
+- 备份旧模板内容
+- 验证迁移结果
+
+**注意事项**：
+- 如果模板已包含 `action_definition` 变量，脚本会跳过更新
+- 全新安装的系统无需运行此迁移脚本
+- 迁移失败不会影响原有数据
 
 ## 🎯 成功标志
 
