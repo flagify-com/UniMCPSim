@@ -29,7 +29,7 @@ START_TIME = datetime.now()
 @app.route('/admin/login')
 def login_page():
     """登录页面"""
-    return render_template('login.html')
+    return render_template('login.html', version=get_version())
 
 @app.route('/admin/')
 @login_required
