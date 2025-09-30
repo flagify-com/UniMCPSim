@@ -4,7 +4,7 @@
 用于现有数据库升级到 v2.4.0
 """
 
-from models import db_manager
+from models import db_manager, PromptTemplate
 from datetime import datetime, timezone
 
 
@@ -40,7 +40,7 @@ def migrate_prompt_templates():
         session = db_manager.get_session()
 
         # 查找 response_simulation 模板
-        prompt = session.query(db_manager.PromptTemplate).filter_by(
+        prompt = session.query(PromptTemplate).filter_by(
             name="response_simulation"
         ).first()
 
@@ -91,7 +91,7 @@ def verify_migration():
     try:
         session = db_manager.get_session()
 
-        prompt = session.query(db_manager.PromptTemplate).filter_by(
+        prompt = session.query(PromptTemplate).filter_by(
             name="response_simulation"
         ).first()
 
