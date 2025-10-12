@@ -3,11 +3,49 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.3.0"
-__version_info__ = (2, 3, 0)
+__version__ = "2.4.3"
+__version_info__ = (2, 4, 3)
 
 # Version history
 VERSION_HISTORY = {
+    "2.4.3": {
+        "date": "2025-09-30",
+        "features": [
+            "Optimized log detail modal with side-by-side layout",
+            "Request parameters and response results displayed in parallel",
+            "Increased JSON viewer height to 450px for better readability",
+            "4-column basic info layout for efficient space usage"
+        ]
+    },
+    "2.4.2": {
+        "date": "2025-09-30",
+        "features": [
+            "Enhanced audit log modal with Monaco Editor for JSON display",
+            "Fixed modal centering issue in logs page",
+            "Improved application list sorting (newest first)",
+            "Better UX with syntax highlighting and code folding"
+        ]
+    },
+    "2.4.1": {
+        "date": "2025-09-30",
+        "features": [
+            "Fixed AI prompt template to include action_definition variable",
+            "Added database migration script for existing installations",
+            "Improved AI response accuracy with complete action context",
+            "Documentation updates for upgrade procedures"
+        ]
+    },
+    "2.4.0": {
+        "date": "2025-09-30",
+        "features": [
+            "Enhanced logging system with DEBUG mode support",
+            "Comprehensive MCP protocol compliance (ping, notifications/initialized)",
+            "Audit log enhancements (IP address tracking, detail modal)",
+            "Fixed SQLAlchemy and datetime deprecation warnings",
+            "Multi-level log files (all, error, debug) with auto-rotation",
+            "Detailed tracking of MCP calls, AI calls, and tool calls"
+        ]
+    },
     "2.3.0": {
         "date": "2025-09-30",
         "features": [

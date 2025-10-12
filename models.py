@@ -8,8 +8,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from sqlalchemy import create_engine, Column, String, Text, DateTime, Boolean, Integer, ForeignKey, JSON
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship, Session
+from sqlalchemy.orm import sessionmaker, relationship, Session, declarative_base
 from pydantic import BaseModel, Field
 
 Base = declarative_base()
@@ -137,6 +136,12 @@ class DatabaseManager:
     """数据库管理器"""
 
     def __init__(self, db_url: str = 'sqlite:///data/unimcp.db'):
+        # 确保 data 目录存在
+        import os
+        db_dir = os.path.dirname(db_url.replace('sqlite:///', ''))
+        if db_dir and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+
         self.engine = create_engine(db_url, echo=False)
         Base.metadata.create_all(self.engine)
         self.SessionLocal = sessionmaker(bind=self.engine)
@@ -447,10 +452,14 @@ class DatabaseManager:
             response_simulation_template = """你是{app_name}系统的模拟器。用户调用了{action}操作，参数如下：
 {parameters}
 
+动作完整定义：
+{action_definition}
+
 请生成一个真实的API响应结果（JSON格式）。响应应该：
 1. 符合真实系统的响应格式
 2. 包含合理的数据
 3. 反映操作的成功或失败状态
+4. 考虑动作定义中的描述和参数要求
 
 直接返回JSON，不要任何其他说明文字。"""
 
@@ -477,7 +486,8 @@ class DatabaseManager:
                 variables=[
                     {"name": "app_name", "description": "应用名称"},
                     {"name": "action", "description": "动作名称"},
-                    {"name": "parameters", "description": "调用参数JSON字符串"}
+                    {"name": "parameters", "description": "调用参数JSON字符串"},
+                    {"name": "action_definition", "description": "动作完整定义JSON字符串"}
                 ]
             )
 

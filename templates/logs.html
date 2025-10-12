@@ -5,6 +5,37 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>操作日志 - UniMCPSim</title>
     <link rel="stylesheet" href="/static/css/main.css">
+    <!-- Monaco Editor Local -->
+    <script src="/static/js/monaco-editor/vs/loader.js"></script>
+    <style>
+        .log-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .log-row:hover {
+            background-color: rgba(0, 123, 255, 0.1);
+        }
+        .log-detail-section {
+            margin-bottom: 1.5rem;
+        }
+        .log-detail-label {
+            font-weight: 600;
+            color: var(--primary-100);
+            margin-bottom: 0.5rem;
+            font-size: 0.95rem;
+        }
+        .log-detail-value {
+            color: var(--text-100);
+            margin-bottom: 0.5rem;
+        }
+        .json-viewer-container {
+            border: 1px solid var(--bg-300);
+            border-radius: 6px;
+            height: 450px;
+            width: 100%;
+            overflow: hidden;
+        }
+    </style>
 </head>
 <body>
 {% include '_navigation.html' %}
@@ -18,8 +49,8 @@
                         <th>时间</th>
                         <th>应用</th>
                         <th>操作</th>
-                        <th>参数</th>
-                        <th>响应</th>
+                        <th>参数摘要</th>
+                        <th>响应摘要</th>
                         <th>IP地址</th>
                     </tr>
                 </thead>
@@ -30,23 +61,107 @@
         </div>
     </div>
 
+    <!-- 日志详情 Modal -->
+    <div id="logDetailModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 class="modal-title">操作日志详情</h3>
+            </div>
+
+            <!-- 基本信息 -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="log-detail-section">
+                    <div class="log-detail-label">时间</div>
+                    <div class="log-detail-value" id="detailTimestamp"></div>
+                </div>
+                <div class="log-detail-section">
+                    <div class="log-detail-label">应用</div>
+                    <div class="log-detail-value" id="detailAppName"></div>
+                </div>
+                <div class="log-detail-section">
+                    <div class="log-detail-label">操作</div>
+                    <div class="log-detail-value" id="detailAction"></div>
+                </div>
+                <div class="log-detail-section">
+                    <div class="log-detail-label">IP地址</div>
+                    <div class="log-detail-value" id="detailIpAddress"></div>
+                </div>
+            </div>
+
+            <!-- 请求与响应左右展示 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                <div class="log-detail-section">
+                    <div class="log-detail-label">请求参数</div>
+                    <div id="detailParametersEditor" class="json-viewer-container"></div>
+                </div>
+
+                <div class="log-detail-section">
+                    <div class="log-detail-label">响应结果</div>
+                    <div id="detailResponseEditor" class="json-viewer-container"></div>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--bg-300);">
+                <button type="button" class="btn btn-secondary" onclick="closeLogDetailModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
 {% include '_footer.html' %}
 
     <script>
+        let currentLogs = [];
+        let parametersEditor = null;
+        let responseEditor = null;
+
+        // 初始化 Monaco Editor
+        function initMonacoEditors() {
+            require.config({ paths: { vs: '/static/js/monaco-editor/vs' } });
+            require(['vs/editor/editor.main'], function () {
+                // 参数编辑器（只读）
+                parametersEditor = monaco.editor.create(document.getElementById('detailParametersEditor'), {
+                    value: '',
+                    language: 'json',
+                    theme: 'vs-dark',
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    wordWrap: 'on',
+                    lineNumbers: 'on',
+                    folding: true
+                });
+
+                // 响应编辑器（只读）
+                responseEditor = monaco.editor.create(document.getElementById('detailResponseEditor'), {
+                    value: '',
+                    language: 'json',
+                    theme: 'vs-dark',
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    automaticLayout: true,
+                    wordWrap: 'on',
+                    lineNumbers: 'on',
+                    folding: true
+                });
+            });
+        }
+
         async function loadLogs() {
             try {
                 const response = await fetch('/admin/api/logs');
-                const logs = await response.json();
+                currentLogs = await response.json();
                 const tbody = document.getElementById('logsList');
 
-                tbody.innerHTML = logs.map(log => `
-                    <tr>
+                tbody.innerHTML = currentLogs.map((log, index) => `
+                    <tr class="log-row" onclick="showLogDetail(${index})">
                         <td>${new Date(log.timestamp).toLocaleString()}</td>
                         <td>${log.app_name}</td>
                         <td>${log.action}</td>
-                        <td>${JSON.stringify(log.parameters).substring(0, 50)}...</td>
-                        <td>${JSON.stringify(log.response).substring(0, 50)}...</td>
-                        <td>${log.ip_address}</td>
+                        <td>${truncateJson(log.parameters, 50)}</td>
+                        <td>${truncateJson(log.response, 50)}</td>
+                        <td>${log.ip_address || 'N/A'}</td>
                     </tr>
                 `).join('');
             } catch (error) {
@@ -54,8 +169,64 @@
             }
         }
 
-        loadLogs();
-        setInterval(loadLogs, 30000); // 自动刷新，每30秒
+        function truncateJson(obj, maxLength) {
+            const str = JSON.stringify(obj);
+            if (str.length <= maxLength) {
+                return str;
+            }
+            return str.substring(0, maxLength) + '...';
+        }
+
+        function showLogDetail(index) {
+            const log = currentLogs[index];
+
+            // 更新基本信息
+            document.getElementById('detailTimestamp').textContent = new Date(log.timestamp).toLocaleString();
+            document.getElementById('detailAppName').textContent = log.app_name;
+            document.getElementById('detailAction').textContent = log.action;
+            document.getElementById('detailIpAddress').textContent = log.ip_address || 'N/A';
+
+            // 更新 Monaco Editor 内容
+            if (parametersEditor) {
+                parametersEditor.setValue(JSON.stringify(log.parameters, null, 2));
+            }
+            if (responseEditor) {
+                responseEditor.setValue(JSON.stringify(log.response, null, 2));
+            }
+
+            // 显示 modal（使用 flex 布局居中）
+            const modal = document.getElementById('logDetailModal');
+            modal.classList.add('show');
+            modal.style.display = 'flex';
+        }
+
+        function closeLogDetailModal() {
+            const modal = document.getElementById('logDetailModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+
+        // 点击 modal 外部区域关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('logDetailModal');
+            if (event.target === modal) {
+                closeLogDetailModal();
+            }
+        }
+
+        // ESC 键关闭 modal
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeLogDetailModal();
+            }
+        });
+
+        // 页面加载完成后初始化
+        window.addEventListener('load', function() {
+            initMonacoEditors();
+            loadLogs();
+            setInterval(loadLogs, 30000); // 自动刷新，每30秒
+        });
     </script>
 </body>
 </html>
