@@ -22,14 +22,22 @@ class AIResponseGenerator:
         api_key = os.getenv('OPENAI_API_KEY')
         api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
         model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+        # 读取enable_thinking配置,默认为False(禁用)
+        enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
+        # 读取stream配置,默认为False(某些模型如qwq-32b强制要求stream=True)
+        use_stream = os.getenv('OPENAI_STREAM', 'false').lower() == 'true'
 
         if api_key:
             self.client = OpenAI(api_key=api_key, base_url=api_base)
             self.model = model
             self.enabled = True
+            self.enable_thinking = enable_thinking
+            self.use_stream = use_stream
         else:
             self.client = None
             self.enabled = False
+            self.enable_thinking = False
+            self.use_stream = False
 
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
@@ -75,22 +83,57 @@ class AIResponseGenerator:
             start_time = time.time()
 
             try:
-                response = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=[
-                        {"role": "system", "content": "你是一个API响应模拟器,返回符合规范的JSON数据。"},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=0.7,
-                    max_tokens=1000
-                )
+                if self.use_stream:
+                    # Stream模式处理
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {"role": "system", "content": "你是一个API响应模拟器,返回符合规范的JSON数据。"},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=1000,
+                        stream=True,
+                        # 禁用thinking模式,防止思考过程影响JSON输出格式
+                        extra_body={"enable_thinking": self.enable_thinking}
+                    )
 
-                duration = time.time() - start_time
+                    # 收集stream响应
+                    result = ""
+                    for chunk in response:
+                        if chunk.choices[0].delta.content:
+                            result += chunk.choices[0].delta.content
 
-                # 解析响应
-                result = response.choices[0].message.content
+                    duration = time.time() - start_time
+                else:
+                    # 非Stream模式处理
+                    response = self.client.chat.completions.create(
+                        model=self.model,
+                        messages=[
+                            {"role": "system", "content": "你是一个API响应模拟器,返回符合规范的JSON数据。"},
+                            {"role": "user", "content": prompt}
+                        ],
+                        temperature=0.7,
+                        max_tokens=1000,
+                        # 禁用thinking模式,防止思考过程影响JSON输出格式
+                        extra_body={"enable_thinking": self.enable_thinking}
+                    )
+
+                    duration = time.time() - start_time
+
+                    # 解析响应
+                    result = response.choices[0].message.content
 
                 # 记录成功的 AI 调用
+                # Stream模式下无法获取usage信息
+                usage = None
+                if not self.use_stream and hasattr(response, 'usage') and response.usage:
+                    usage = {
+                        'prompt_tokens': response.usage.prompt_tokens,
+                        'completion_tokens': response.usage.completion_tokens,
+                        'total_tokens': response.usage.total_tokens
+                    }
+
                 mcp_logger.log_ai_call(
                     provider="OpenAI",
                     model=self.model,
@@ -98,11 +141,7 @@ class AIResponseGenerator:
                     response=result,
                     success=True,
                     duration=duration,
-                    usage={
-                        'prompt_tokens': response.usage.prompt_tokens if response.usage else None,
-                        'completion_tokens': response.usage.completion_tokens if response.usage else None,
-                        'total_tokens': response.usage.total_tokens if response.usage else None
-                    }
+                    usage=usage
                 )
 
                 try:

@@ -6,7 +6,7 @@
 import hashlib
 import jwt
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from functools import wraps
 from flask import request, jsonify, session, redirect, url_for
@@ -23,12 +23,13 @@ def verify_password(password: str, hashed: str) -> bool:
 
 def create_jwt_token(user_id: int, username: str, is_admin: bool = False) -> str:
     """创建JWT Token"""
+    now = datetime.now(timezone.utc)
     payload = {
         'user_id': user_id,
         'username': username,
         'is_admin': is_admin,
-        'exp': datetime.utcnow() + timedelta(hours=24),
-        'iat': datetime.utcnow()
+        'exp': now + timedelta(hours=24),
+        'iat': now
     }
     return jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 

@@ -21,8 +21,8 @@ class User(Base):
     username = Column(String(50), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     tokens = relationship("Token", back_populates="user", cascade="all, delete-orphan")
 
@@ -36,7 +36,7 @@ class Token(Base):
     name = Column(String(100), nullable=False)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
     enabled = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     last_used = Column(DateTime, nullable=True)
 
     user = relationship("User", back_populates="tokens")
@@ -54,8 +54,8 @@ class Application(Base):
     description = Column(Text)
     template = Column(JSON)  # 存储应用的动作和参数定义
     enabled = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     permissions = relationship("AppPermission", back_populates="application", cascade="all, delete-orphan")
     logs = relationship("AuditLog", back_populates="application")
@@ -84,7 +84,7 @@ class AuditLog(Base):
     parameters = Column(JSON)
     response = Column(JSON)
     ip_address = Column(String(45))
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     application = relationship("Application", back_populates="logs")
 
@@ -100,8 +100,8 @@ class PromptTemplate(Base):
     template = Column(Text, nullable=False)  # 提示词模板内容
     variables = Column(JSON)  # 可用变量定义 [{"name": "prompt", "description": "用户输入的需求描述"}]
     enabled = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 # Pydantic模型

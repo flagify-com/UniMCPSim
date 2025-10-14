@@ -84,6 +84,7 @@ UniMCPSim/
 - **Provider**: OpenAI API (GPT-4o-mini by default)
 - **Purpose**: Generate realistic mock responses and action definitions
 - **Configuration**: Via `.env` file (REQUIRED)
+- **Thinking Mode**: Disabled by default to prevent thinking process from interfering with JSON output format
 
 ## Common Commands
 
@@ -102,6 +103,8 @@ cat > .env << 'EOF'
 OPENAI_API_KEY=your_api_key_here
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_API_BASE_URL=https://api.openai.com/v1
+OPENAI_ENABLE_THINKING=false
+OPENAI_STREAM=false
 EOF
 
 # Initialize simulators (optional, auto-runs on first start)
@@ -320,11 +323,30 @@ Required `.env` configuration:
 OPENAI_API_KEY=sk-xxxxx
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_API_BASE_URL=https://api.openai.com/v1
+OPENAI_ENABLE_THINKING=false  # 禁用思考模式,防止影响JSON输出(默认false)
+OPENAI_STREAM=false  # 控制stream模式,某些模型如qwq-32b强制要求true(默认false)
 
 # Optional configurations
 DEBUG=false
 LOG_LEVEL=INFO
 ```
+
+**OPENAI_ENABLE_THINKING说明**:
+- 默认值: `false` (禁用thinking模式)
+- 用途: 控制大模型是否启用思考过程输出
+- 重要性: 许多支持thinking模式的大模型(如qwen-thinking、DeepSeek-R1等)在启用thinking时会在响应中包含思考过程,这会干扰JSON格式的解析,导致API响应生成失败
+- 建议: 保持默认值`false`,除非你明确知道使用的模型不会因thinking模式影响JSON输出
+- 设置为`true`: 仅在需要调试或使用特定模型时启用
+
+**OPENAI_STREAM说明**:
+- 默认值: `false` (禁用stream模式)
+- 用途: 控制是否使用stream模式调用AI API
+- 重要性: 某些模型(如qwq-32b)强制要求使用stream模式,否则会返回400错误
+- 适用模型: qwq-32b、部分deepseek-r1变体等
+- 建议: 根据使用的模型调整
+  - 常规模型(gpt-4o-mini、qwen3-max等): 保持`false`
+  - 强制stream模型(qwq-32b等): 设置为`true`
+- 注意: Stream模式下无法获取token使用量统计信息
 
 ## Project Status
 
