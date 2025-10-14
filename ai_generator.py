@@ -22,14 +22,18 @@ class AIResponseGenerator:
         api_key = os.getenv('OPENAI_API_KEY')
         api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
         model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+        # 读取enable_thinking配置,默认为False(禁用)
+        enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
 
         if api_key:
             self.client = OpenAI(api_key=api_key, base_url=api_base)
             self.model = model
             self.enabled = True
+            self.enable_thinking = enable_thinking
         else:
             self.client = None
             self.enabled = False
+            self.enable_thinking = False
 
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
@@ -82,7 +86,9 @@ class AIResponseGenerator:
                         {"role": "user", "content": prompt}
                     ],
                     temperature=0.7,
-                    max_tokens=1000
+                    max_tokens=1000,
+                    # 禁用thinking模式,防止思考过程影响JSON输出格式
+                    extra_body={"enable_thinking": self.enable_thinking}
                 )
 
                 duration = time.time() - start_time

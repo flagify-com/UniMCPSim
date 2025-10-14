@@ -503,6 +503,8 @@ def generate_actions_with_ai(category, name, display_name, description, prompt):
         api_key = os.getenv('OPENAI_API_KEY')
         model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
         api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
+        # 读取enable_thinking配置,默认为False(禁用)
+        enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
 
         if not api_key:
             raise Exception("OPENAI_API_KEY not configured")
@@ -521,7 +523,9 @@ def generate_actions_with_ai(category, name, display_name, description, prompt):
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.7,
-            max_tokens=2000
+            max_tokens=2000,
+            # 禁用thinking模式,防止思考过程影响JSON输出格式
+            extra_body={"enable_thinking": enable_thinking}
         )
 
         # 解析返回结果
