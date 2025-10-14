@@ -274,7 +274,8 @@ def handle_mcp_request(data: dict, session_id: str = None, app_context: dict = N
                 )
 
                 # 判断是否成功
-                success = 'error' not in result or result.get('code', 200) < 400
+                # 成功条件：没有error字段 且 (没有code字段或code < 400)
+                success = 'error' not in result and result.get('code', 200) < 400
 
                 # 记录工具调用
                 mcp_logger.log_tool_call(

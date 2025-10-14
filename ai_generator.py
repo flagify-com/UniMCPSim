@@ -168,11 +168,30 @@ class AIResponseGenerator:
                     error=error_msg,
                     duration=duration
                 )
-                raise
+
+                # 返回错误响应而不是抛出异常
+                return {
+                    "success": False,
+                    "error": "AI generation failed",
+                    "error_detail": error_msg,
+                    "code": 500,
+                    "app": app_name,
+                    "action": action,
+                    "fallback": "Consider using default response or check AI configuration"
+                }
 
         except Exception as e:
             mcp_logger.error(f"AI generation failed: {e}", exc_info=True)
-            return self._generate_default_response(app_name, action, parameters)
+            # 返回错误响应而不是默认成功响应
+            return {
+                "success": False,
+                "error": "AI generation failed",
+                "error_detail": str(e),
+                "code": 500,
+                "app": app_name,
+                "action": action,
+                "fallback": "Consider using default response or check AI configuration"
+            }
 
     def _generate_default_response(self, app_name: str, action: str, parameters: Dict[str, Any]) -> Dict[str, Any]:
         """生成默认响应"""
