@@ -505,6 +505,8 @@ def generate_actions_with_ai(category, name, display_name, description, prompt):
         api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
         # 读取enable_thinking配置,默认为False(禁用)
         enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
+        # 读取stream配置,默认为False(某些模型如qwq-32b强制要求stream=True)
+        use_stream = os.getenv('OPENAI_STREAM', 'false').lower() == 'true'
 
         if not api_key:
             raise Exception("OPENAI_API_KEY not configured")
@@ -516,20 +518,43 @@ def generate_actions_with_ai(category, name, display_name, description, prompt):
         )
 
         # 调用OpenAI API
-        response = client.chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": "你是一个专业的API动作定义生成器，返回符合规范的JSON格式数据。"},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.7,
-            max_tokens=2000,
-            # 禁用thinking模式,防止思考过程影响JSON输出格式
-            extra_body={"enable_thinking": enable_thinking}
-        )
+        if use_stream:
+            # Stream模式
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "你是一个专业的API动作定义生成器，返回符合规范的JSON格式数据。"},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2000,
+                stream=True,
+                # 禁用thinking模式,防止思考过程影响JSON输出格式
+                extra_body={"enable_thinking": enable_thinking}
+            )
 
-        # 解析返回结果
-        content = response.choices[0].message.content.strip()
+            # 收集stream响应
+            content = ""
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    content += chunk.choices[0].delta.content
+            content = content.strip()
+        else:
+            # 非Stream模式
+            response = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "你是一个专业的API动作定义生成器，返回符合规范的JSON格式数据。"},
+                    {"role": "user", "content": user_prompt}
+                ],
+                temperature=0.7,
+                max_tokens=2000,
+                # 禁用thinking模式,防止思考过程影响JSON输出格式
+                extra_body={"enable_thinking": enable_thinking}
+            )
+
+            # 解析返回结果
+            content = response.choices[0].message.content.strip()
 
         # 尝试解析JSON
         try:
