@@ -223,25 +223,21 @@ python reset_admin_password.py
 - When creating new apps, AI can auto-generate action definitions
 - Uses database templates for consistent formatting
 - Requires OpenAI API configuration in `.env`
-- **Button disabled during API call** to prevent double-clicks
-- **Toast notifications** replace browser alerts for better UX
 
-### App Name Validation (New Feature)
-- **URL-Safe Characters Only**: Category and name fields accept only alphanumeric, underscore, and hyphen characters
-- **Frontend & Backend Validation**: Both layers enforce the `^[a-zA-Z0-9_-]+$` regex pattern (2-50 characters)
-- **Why**: Ensures clean URL paths like `/mcp/Security/VirusTotal?token=xxx`
-- **User Feedback**: Clear error messages for invalid input
+### App Name Validation
+- **URL-Safe Characters**: Category and name must match `^[a-zA-Z0-9_-]+$` (2-50 chars)
+- **Validation Layer**: Both frontend (JavaScript) and backend (Python) enforce validation
+- **Rationale**: Ensures clean URL paths like `/mcp/Security/VirusTotal?token=xxx`
 
 ### Database Initialization Logic
-- **One-Time Initialization**: Checks if any applications exist (count > 0)
-- **Respects User Deletions**: Skips initialization if apps found, preventing re-import of deleted apps
-- **Fresh Install Support**: Auto-initializes 10 default apps on first run
-- **ai_notes Field**: Included in all initialized applications
+- **Idempotency**: Checks if applications exist (count > 0), skips if yes
+- **Design Principle**: Respects user modifications, prevents re-import of deleted apps
+- **Fresh Install**: Auto-initializes default apps only on first run
 
 ### Token Permission Workflow
-- **Manual Permission Binding**: New apps are NOT automatically authorized to existing tokens
-- **User-Guided Process**: Success message prompts users to visit Token management page
-- **Why**: Explicit permission control prevents unintended access
+- **Explicit Authorization**: New apps require manual token binding
+- **Security Principle**: No automatic permission grants to prevent unintended access
+- **User Guidance**: UI prompts users to manually bind permissions after app creation
 
 ### Prompt Template Management
 - System provides default templates for action generation and response simulation
@@ -371,20 +367,16 @@ LOG_LEVEL=INFO
 
 Current Version: **v2.5.0**
 - ✅ Core MCP simulator fully functional
-- ✅ 10 pre-configured product simulators (with ai_notes support)
-- ✅ AI-enhanced response generation with thinking mode control
-- ✅ Enhanced Web admin interface with modern UI
-- ✅ Token permission management with visual modal interface
-- ✅ App details viewer with complete action information
-- ✅ One-click MCP configuration generator
-- ✅ Prompt template management system
-- ✅ Unified navigation and footer components
-- ✅ Toast notification system (replacing browser alerts)
-- ✅ URL-safe app name validation (frontend & backend)
-- ✅ Smart database initialization (respects user deletions)
-- ✅ Explicit token permission workflow
+- ✅ Pre-configured product simulators
+- ✅ AI-enhanced response generation
+- ✅ Web admin interface with modern UI
+- ✅ Token permission management system
+- ✅ MCP configuration generator
+- ✅ Prompt template management
 - ✅ Cherry Studio/Claude Desktop/Cline integration tested
 - ✅ Comprehensive test coverage
+
+See CHANGELOG.md for detailed feature history.
 
 ## Quick Test Commands
 
