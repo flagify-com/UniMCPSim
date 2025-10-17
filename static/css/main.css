@@ -340,20 +340,35 @@ body {
     max-height: 90vh;
 }
 
-/* Extra Large Modal for Create App */
+/* Extra Large Modal for Create App - New Three Column Layout */
 .modal-content.extra-large {
-    max-width: 1200px;
-    width: 98%;
-    height: 750px;
+    width: 90vw;
+    max-width: 90vw;
+    height: 90vh;
     max-height: 90vh;
     overflow: hidden;
     display: flex;
     flex-direction: column;
+    padding: 1.5rem;
+}
+
+.modal-content.extra-large .modal-header {
+    flex-shrink: 0;
+    margin-bottom: 0;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--bg-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .modal-content.extra-large .modal-title {
-    flex-shrink: 0;
-    margin-bottom: 1.5rem;
+    margin: 0;
+}
+
+.modal-header-actions {
+    display: flex;
+    gap: 0.5rem;
 }
 
 .modal-content.extra-large form {
@@ -361,43 +376,33 @@ body {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow: hidden;  /* 阻止form本身滚动 */
 }
 
-.modal-split {
+/* Three Column Layout */
+.modal-three-columns {
     display: grid;
-    grid-template-columns: 400px 1fr;
-    gap: 2rem;
-}
-
-/* New Split Layout for Create Modal (55:45 ratio) */
-.modal-split-new {
-    display: grid;
-    grid-template-columns: 55fr 45fr;
+    grid-template-columns: 25fr 30fr 45fr;
     gap: 2rem;
     flex: 1;
     min-height: 0;
-    overflow: hidden;
+    overflow-y: auto;  /* 只让三列内容区域滚动 */
+    padding: 1.5rem 0;  /* 在滚动容器内部添加上下padding */
 }
 
-.modal-left,
-.modal-right {
+.modal-column-left,
+.modal-column-center,
+.modal-column-right {
     display: flex;
     flex-direction: column;
     min-height: 0;
-    overflow-y: auto;
-    padding-right: 0.5rem;
+    overflow: visible;
 }
 
-/* Scrollbar Styles for Modal Columns */
-.modal-left::-webkit-scrollbar,
-.modal-right::-webkit-scrollbar {
-    width: 6px;
-}
-
-.modal-left::-webkit-scrollbar-thumb,
-.modal-right::-webkit-scrollbar-thumb {
-    background-color: var(--bg-300);
-    border-radius: 3px;
+/* 底部安全垫：确保内容不会贴到弹窗底部边界 */
+.modal-bottom-spacer {
+    height: 1.5rem;
+    flex-shrink: 0;
 }
 
 /* Compact Form Group (no label, uses placeholder) */
@@ -411,7 +416,7 @@ body {
     border-radius: 6px;
     height: 400px;
     width: 100%;
-    overflow: hidden;
+    position: relative;
 }
 
 .monaco-editor-container-large {
@@ -419,8 +424,8 @@ body {
     border-radius: 6px;
     height: 450px;
     width: 100%;
-    overflow: hidden;
     flex-shrink: 0;
+    position: relative;
 }
 
 .monaco-editor-container:focus-within,

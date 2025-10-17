@@ -42,72 +42,74 @@
     <!-- 创建应用模态框 -->
     <div id="createModal" class="modal">
         <div class="modal-content extra-large">
-            <h3 class="modal-title">创建新应用</h3>
+            <div class="modal-header">
+                <h3 class="modal-title">创建新应用</h3>
+                <div class="modal-header-actions">
+                    <button type="submit" form="createAppForm" id="createSubmitBtn" class="btn btn-primary">创建</button>
+                    <button type="button" onclick="hideModal()" class="btn btn-secondary">取消</button>
+                </div>
+            </div>
             <form id="createAppForm">
-                <div class="modal-split-new">
-                    <!-- 左侧：基本信息 + JSON编辑器 (55%) -->
-                    <div class="modal-left">
-                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">基本信息与JSON配置</h4>
+                <div class="modal-three-columns">
+                    <!-- 左列：基本信息 (25%) -->
+                    <div class="modal-column-left">
+                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">1. 基本信息</h4>
 
-                        <!-- 紧凑的基本信息区 (无label, 使用placeholder) -->
-                        <div class="form-group-compact">
-                            <input type="text" name="category" class="form-control" required placeholder="类别，如：IM, Network, Security">
-                        </div>
-                        <div class="form-group-compact">
-                            <input type="text" name="name" class="form-control" required placeholder="名称，如：WeChat, CiscoRouter">
-                        </div>
-                        <div class="form-group-compact">
-                            <input type="text" name="display_name" class="form-control" required placeholder="显示名称，如：企业微信">
-                        </div>
-                        <div class="form-group-compact">
-                            <textarea name="description" class="form-control" rows="4" placeholder="应用的详细描述"></textarea>
-                        </div>
-
-                        <!-- 分隔线 -->
-                        <div style="border-top: 1px solid var(--bg-300); margin: 1rem 0;"></div>
-
-                        <!-- JSON编辑器 -->
                         <div class="form-group">
-                            <label class="form-label" style="font-weight: 600; color: var(--primary-100);">JSON格式动作配置</label>
-                            <div id="createActionsEditor" class="monaco-editor-container-large"></div>
-                            <textarea id="createActions" name="actions" style="display: none;"></textarea>
+                            <label class="form-label">类别</label>
+                            <input type="text" name="category" class="form-control" required placeholder="如：Email、Firewall、CloudStorage">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">名称</label>
+                            <input type="text" name="name" class="form-control" required placeholder="如：Gmail、FortiGate、AWSStorage">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">显示名称</label>
+                            <input type="text" name="display_name" class="form-control" required placeholder="如：Gmail邮箱、飞塔防火墙、AWS对象存储">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">描述</label>
+                            <textarea name="description" class="form-control" rows="3" placeholder="应用的简要说明，如：提供企业邮件收发、通讯录管理等功能"></textarea>
                         </div>
                     </div>
 
-                    <!-- 右侧：AI智能生成配置 (45%) -->
-                    <div class="modal-right">
-                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">AI智能生成配置</h4>
+                    <!-- 中列：AI智能生成配置 (30%) -->
+                    <div class="modal-column-center">
+                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">2. AI智能生成配置</h4>
 
                         <div class="form-group">
                             <label class="form-label">智能生成提示词</label>
-                            <textarea id="createPrompt" class="form-control" rows="6" placeholder="描述需要生成的动作，例如：
-工具1：查询防火墙健康状态
-工具2：封禁一个IP地址
-工具3：解封一个IP地址"></textarea>
-                            <button type="button" id="generateActions" class="btn btn-secondary btn-block" style="margin-top: 0.5rem;">
-                                🤖 自动生成动作定义
-                            </button>
+                            <textarea id="createPrompt" class="form-control" rows="10" placeholder="描述需要生成的动作，例如：
+工具1：封禁一个给定的IP地址
+工具2：发送邮件email，必填参数：title、subject、text_body和mailto
+工具3：查询系统健康状态，返回CPU、内存、磁盘使用率"></textarea>
                         </div>
 
-                        <!-- 分隔线 -->
-                        <div style="border-top: 1px solid var(--bg-300); margin: 1.5rem 0;"></div>
+                        <button type="button" id="generateActions" class="btn btn-secondary btn-block" style="margin-bottom: 1.5rem;" disabled>
+                            3. 🤖 自动生成动作定义
+                        </button>
 
-                        <!-- AI生成备注 (新增) -->
                         <div class="form-group">
-                            <label class="form-label">AI生成备注（可选）</label>
-                            <textarea name="ai_notes" class="form-control" rows="7" placeholder="对AI生成结果的格式、风格等要求，或提供样例数据（可选）
+                            <label class="form-label">对AI模拟结果的其他要求/参考信息（可选）</label>
+                            <textarea name="ai_notes" class="form-control" rows="10" placeholder="对模拟响应的格式、风格、数据样例等要求，帮助AI生成更符合预期的结果
 
 示例：
-- 返回的IP地址字段必须包含地理位置信息
-- 响应格式参考：{&quot;status&quot;: &quot;success&quot;, &quot;data&quot;: {...}}"></textarea>
+- 所有时间字段使用ISO 8601格式（如：2024-01-15T10:30:00Z）
+- 错误响应包含error_code和error_message字段
+- 成功响应格式：{&quot;status&quot;: &quot;success&quot;, &quot;data&quot;: {...}, &quot;timestamp&quot;: &quot;...&quot;}
+- IP地址字段需包含地理位置信息（国家、城市）"></textarea>
                         </div>
                     </div>
-                </div>
 
-                <div class="d-flex gap-2" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--bg-300);">
-                    <button type="submit" class="btn btn-primary">创建</button>
-                    <button type="button" onclick="hideModal()" class="btn btn-secondary">取消</button>
+                    <!-- 右列：JSON编辑器 (45%) -->
+                    <div class="modal-column-right">
+                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">4. JSON格式动作配置</h4>
+                        <div id="createActionsEditor" class="monaco-editor-container-large" style="height: 100%; min-height: 600px;"></div>
+                        <textarea id="createActions" name="actions" style="display: none;"></textarea>
+                    </div>
                 </div>
+                <!-- 底部安全垫：防止内容贴到弹窗底部边界 -->
+                <div class="modal-bottom-spacer"></div>
             </form>
         </div>
     </div>
@@ -275,6 +277,22 @@
                 const textarea = document.getElementById('createActions');
                 textarea.value = createActionsEditor.getValue();
             });
+
+            // 监听提示词输入框变化，控制AI生成按钮状态
+            document.getElementById('createPrompt').addEventListener('input', (e) => {
+                const generateBtn = document.getElementById('generateActions');
+                const hasContent = e.target.value.trim().length > 0;
+                generateBtn.disabled = !hasContent;
+
+                // 如果有内容，变成蓝色按钮
+                if (hasContent) {
+                    generateBtn.classList.remove('btn-secondary');
+                    generateBtn.classList.add('btn-primary');
+                } else {
+                    generateBtn.classList.remove('btn-primary');
+                    generateBtn.classList.add('btn-secondary');
+                }
+            });
         });
 
         async function loadApps() {
@@ -312,6 +330,12 @@
 
         function showCreateModal() {
             document.getElementById('createModal').classList.add('show');
+
+            // 初始化AI生成按钮状态
+            const generateBtn = document.getElementById('generateActions');
+            generateBtn.disabled = true;
+            generateBtn.classList.remove('btn-primary');
+            generateBtn.classList.add('btn-secondary');
         }
 
         function hideModal() {
@@ -441,6 +465,13 @@
                     // 重置表单
                     document.getElementById('createAppForm').reset();
                     document.getElementById('createPrompt').value = '';
+
+                    // 重置AI生成按钮状态
+                    const generateBtn = document.getElementById('generateActions');
+                    generateBtn.disabled = true;
+                    generateBtn.classList.remove('btn-primary');
+                    generateBtn.classList.add('btn-secondary');
+
                     if (createActionsEditor) {
                         createActionsEditor.setValue('[\n  {\n    "name": "example_action",\n    "display_name": "示例动作",\n    "description": "这是一个示例动作",\n    "parameters": [\n      {\n        "key": "input",\n        "type": "String",\n        "required": true,\n        "description": "输入参数"\n      }\n    ]\n  }\n]');
                     }
