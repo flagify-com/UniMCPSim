@@ -532,9 +532,11 @@
                 });
 
                 if (response.ok) {
+                    const result = await response.json();
                     hideModal();
                     loadApps();
-                    showNotification('应用创建成功', 'success');
+                    // 显示后端返回的提示消息
+                    showNotification(result.message || '应用创建成功', 'success');
                     // 重置表单
                     document.getElementById('createAppForm').reset();
                     document.getElementById('createPrompt').value = '';

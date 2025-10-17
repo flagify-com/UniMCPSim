@@ -192,7 +192,10 @@ def create_app():
         )
         session_db.add(app)
         session_db.commit()
-        return jsonify({'id': app.id})
+        return jsonify({
+            'id': app.id,
+            'message': '应用创建成功!请前往"令牌管理"页面为相关Token绑定此应用的访问权限。'
+        })
     finally:
         session_db.close()
 
