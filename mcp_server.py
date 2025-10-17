@@ -100,8 +100,16 @@ class SimulatorEngine:
             if param['key'] not in params:
                 return {"error": f"Missing required parameter: {param['key']}", "code": 400}
 
-        # 生成响应（传递动作定义）
-        response = ai_generator.generate_response(app.display_name, action, params, action_def)
+        # 准备应用信息（包含完整上下文）
+        app_info = {
+            'category': app.category,
+            'name': app.name,
+            'display_name': app.display_name,
+            'description': app.description or ''
+        }
+
+        # 生成响应（传递应用完整信息和动作定义）
+        response = ai_generator.generate_response(app_info, action, params, action_def)
 
         # 记录日志
         self.db.log_action(

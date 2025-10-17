@@ -449,17 +449,28 @@ class DatabaseManager:
 请严格按照JSON格式返回，不要包含任何其他说明文字。"""
 
             # 响应模拟提示词模板
-            response_simulation_template = """你是{app_name}系统的模拟器。用户调用了{action}操作，参数如下：
+            response_simulation_template = """你是{app_display_name}系统的模拟器。
+
+# 应用信息
+- 分类: {app_category}
+- 名称: {app_name}
+- 显示名称: {app_display_name}
+- 描述: {app_description}
+
+# 调用信息
+用户调用了 {action} 操作，参数如下：
 {parameters}
 
-动作完整定义：
+# 动作完整定义
 {action_definition}
 
+# 任务要求
 请生成一个真实的API响应结果（JSON格式）。响应应该：
 1. 符合真实系统的响应格式
 2. 包含合理的数据
 3. 反映操作的成功或失败状态
-4. 考虑动作定义中的描述和参数要求
+4. 考虑应用描述中的业务场景
+5. 考虑动作定义中的描述和参数要求
 
 直接返回JSON，不要任何其他说明文字。"""
 
@@ -484,7 +495,10 @@ class DatabaseManager:
                 description="用于模拟MCP工具调用响应的提示词模板",
                 template=response_simulation_template,
                 variables=[
-                    {"name": "app_name", "description": "应用名称"},
+                    {"name": "app_category", "description": "应用分类（如：Security, IM, Network等）"},
+                    {"name": "app_name", "description": "应用内部名称（如：WeChat, VirusTotal等）"},
+                    {"name": "app_display_name", "description": "应用显示名称（如：企业微信、VirusTotal等）"},
+                    {"name": "app_description", "description": "应用详细描述，说明其功能和用途"},
                     {"name": "action", "description": "动作名称"},
                     {"name": "parameters", "description": "调用参数JSON字符串"},
                     {"name": "action_definition", "description": "动作完整定义JSON字符串"}
