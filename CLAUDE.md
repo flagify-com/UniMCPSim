@@ -224,6 +224,21 @@ python reset_admin_password.py
 - Uses database templates for consistent formatting
 - Requires OpenAI API configuration in `.env`
 
+### App Name Validation
+- **URL-Safe Characters**: Category and name must match `^[a-zA-Z0-9_-]+$` (2-50 chars)
+- **Validation Layer**: Both frontend (JavaScript) and backend (Python) enforce validation
+- **Rationale**: Ensures clean URL paths like `/mcp/Security/VirusTotal?token=xxx`
+
+### Database Initialization Logic
+- **Idempotency**: Checks if applications exist (count > 0), skips if yes
+- **Design Principle**: Respects user modifications, prevents re-import of deleted apps
+- **Fresh Install**: Auto-initializes default apps only on first run
+
+### Token Permission Workflow
+- **Explicit Authorization**: New apps require manual token binding
+- **Security Principle**: No automatic permission grants to prevent unintended access
+- **User Guidance**: UI prompts users to manually bind permissions after app creation
+
 ### Prompt Template Management
 - System provides default templates for action generation and response simulation
 - Templates support variables: `{app_name}`, `{action_name}`, `{parameters}`, etc.
@@ -350,18 +365,18 @@ LOG_LEVEL=INFO
 
 ## Project Status
 
-Current Version: **v2.1.0**
+Current Version: **v2.5.0**
 - ✅ Core MCP simulator fully functional
-- ✅ 9 pre-configured product simulators
+- ✅ Pre-configured product simulators
 - ✅ AI-enhanced response generation
-- ✅ Enhanced Web admin interface with modern UI
-- ✅ Token permission management with visual modal interface
-- ✅ App details viewer with complete action information
-- ✅ One-click MCP configuration generator
-- ✅ Prompt template management system
-- ✅ Unified navigation and footer components
+- ✅ Web admin interface with modern UI
+- ✅ Token permission management system
+- ✅ MCP configuration generator
+- ✅ Prompt template management
 - ✅ Cherry Studio/Claude Desktop/Cline integration tested
 - ✅ Comprehensive test coverage
+
+See CHANGELOG.md for detailed feature history.
 
 ## Quick Test Commands
 

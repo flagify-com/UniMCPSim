@@ -334,16 +334,85 @@ body {
     overflow-y: auto;
 }
 
+.modal-content.medium {
+    max-width: 1000px;
+    width: 95%;
+}
+
 .modal-content.large {
     max-width: 1200px;
     width: 98%;
     max-height: 90vh;
 }
 
-.modal-split {
+/* Extra Large Modal for Create App - New Three Column Layout */
+.modal-content.extra-large {
+    width: 90vw;
+    max-width: 90vw;
+    height: 90vh;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem;
+}
+
+.modal-content.extra-large .modal-header {
+    flex-shrink: 0;
+    margin-bottom: 0;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--bg-200);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-content.extra-large .modal-title {
+    margin: 0;
+}
+
+.modal-header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.modal-content.extra-large form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;  /* 阻止form本身滚动 */
+}
+
+/* Three Column Layout */
+.modal-three-columns {
     display: grid;
-    grid-template-columns: 400px 1fr;
+    grid-template-columns: 25fr 30fr 45fr;
     gap: 2rem;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;  /* 只让三列内容区域滚动 */
+    padding: 1.5rem 0;  /* 在滚动容器内部添加上下padding */
+}
+
+.modal-column-left,
+.modal-column-center,
+.modal-column-right {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible;
+}
+
+/* 底部安全垫：确保内容不会贴到弹窗底部边界 */
+.modal-bottom-spacer {
+    height: 1.5rem;
+    flex-shrink: 0;
+}
+
+/* Compact Form Group (no label, uses placeholder) */
+.form-group-compact {
+    margin-bottom: 0.75rem;
 }
 
 /* Monaco Editor Container */
@@ -352,12 +421,27 @@ body {
     border-radius: 6px;
     height: 400px;
     width: 100%;
-    overflow: hidden;
+    position: relative;
 }
 
-.monaco-editor-container:focus-within {
+.monaco-editor-container-large {
+    border: 1px solid var(--bg-300);
+    border-radius: 6px;
+    height: 450px;
+    width: 100%;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.monaco-editor-container:focus-within,
+.monaco-editor-container-large:focus-within {
     border-color: var(--primary-100);
     box-shadow: 0 0 0 2px rgba(89, 165, 245, 0.2);
+}
+
+/* Button Block Style */
+.btn-block {
+    width: 100%;
 }
 
 /* 保留原来的json-editor样式作为后备 */
@@ -492,4 +576,81 @@ body {
 
 .footer p {
     margin: 0;
+}
+
+/* Notification Toast Styles */
+.notification-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    min-width: 300px;
+    max-width: 500px;
+    padding: 1rem 1.5rem;
+    background-color: var(--bg-100);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    animation: slideInRight 0.3s ease-out;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.notification-toast.success {
+    border-left: 4px solid #28a745;
+}
+
+.notification-toast.error {
+    border-left: 4px solid #dc3545;
+}
+
+.notification-toast.info {
+    border-left: 4px solid var(--primary-100);
+}
+
+.notification-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.notification-content {
+    flex: 1;
+    color: var(--text-100);
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: var(--text-200);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.notification-close:hover {
+    color: var(--text-100);
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
 }

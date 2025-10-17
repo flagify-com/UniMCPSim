@@ -33,28 +33,86 @@ class PromptTemplate(Base):
 系统预置了两个核心模板：
 
 #### response_simulation 模板
-用于模拟API响应：
+用于模拟API响应(v2.5.0+优化版本):
 ```
-你是{app_name}系统的模拟器。用户调用了{action}操作，参数如下：
+你是{app_display_name}系统的模拟器。
+
+# 应用信息
+- 分类: {app_category}
+- 名称: {app_name}
+- 显示名称: {app_display_name}
+- 描述: {app_description}
+
+# 用户特殊要求
+{ai_notes}
+
+# 调用信息
+用户调用了 {action} 操作,参数如下:
 {parameters}
 
-请生成一个真实的API响应结果（JSON格式）。响应应该：
+# 动作完整定义
+{action_definition}
+
+# 任务要求
+请生成一个真实的API响应结果(JSON格式)。响应应该:
 1. 符合真实系统的响应格式
 2. 包含合理的数据
 3. 反映操作的成功或失败状态
+4. 考虑应用描述中的业务场景
+5. 考虑动作定义中的描述和参数要求
+6. 如果用户提供了特殊要求,严格遵守这些要求
 
-直接返回JSON，不要任何其他说明文字。
+直接返回JSON,不要任何其他说明文字。
 ```
 
 #### action_generation 模板
-用于生成动作定义（创建新应用时使用）
+用于生成动作定义（创建新应用时使用，v2.5.0+支持default字段）
+
+**核心功能**: 根据用户自然语言描述自动生成MCP工具的动作定义(JSON格式)
+
+**动作设计原则**(v2.5.0+):
+1. name: 使用snake_case命名，准确反映动作功能
+2. display_name: 简洁的中文名称
+3. description: 详细说明功能和用途
+4. parameters: 根据需求决定，可有可无
+5. key: 参数名要有实际指导意义
+6. description: 参数说明要具体，包括数据格式、必要性等
+7. **default: 可选参数可设置默认值**(如duration_minutes默认60，page_size默认10等)
+
+**参数定义格式**(v2.5.0+):
+```json
+{
+  "key": "duration_minutes",
+  "type": "Number",
+  "required": false,
+  "default": 60,
+  "description": "封禁时长（分钟），0表示永久封禁"
+}
+```
+
+**default字段说明**:
+- 用途: 为可选参数(required=false)提供默认值
+- 好处: 简化用户调用，无需每次都指定常用参数
+- 示例: duration_minutes=60, page_size=10, timeout=30, max_retries=3等
+
+#### action_generation 的变量
+- `{prompt}`: 用户对动作的自然语言描述
+- `{category}`: 应用分类
+- `{name}`: 应用内部名称
+- `{display_name}`: 应用显示名称
+- `{description}`: 应用详细描述
 
 ### 3. 模板变量
 
-#### response_simulation 的变量
-- `{app_name}`: 应用的显示名称（如 "BBScan网站扫描器"）
-- `{action}`: 调用的动作名称（如 "scan_url"）
-- `{parameters}`: 用户提供的参数（JSON格式字符串）
+#### response_simulation 的变量(v2.5.0+)
+- `{app_category}`: 应用分类(如 "Security", "IM", "Network")
+- `{app_name}`: 应用内部名称(如 "BBScan", "WeChat", "VirusTotal")
+- `{app_display_name}`: 应用显示名称(如 "BBScan网站扫描器", "企业微信")
+- `{app_description}`: 应用详细描述,说明其功能和用途
+- `{ai_notes}`: **[新增]** 用户对AI生成的特殊要求(格式、风格、样例数据等)
+- `{action}`: 调用的动作名称(如 "scan_url")
+- `{parameters}`: 用户提供的参数(JSON格式字符串)
+- `{action_definition}`: 动作完整定义(JSON格式字符串),包含动作的参数、类型、描述等详细信息
 
 ## 工作流程示例
 
@@ -96,35 +154,74 @@ prompt_template = self.db_manager.get_prompt_template('response_simulation')
 
 ##### 步骤 3: 准备变量
 ```python
-# ai_generator.py:47-51
+# mcp_server.py:103-112
+# 首先准备应用完整信息
+app_info = {
+    'category': 'Scanner',
+    'name': 'BBScan',
+    'display_name': 'BBScan网站扫描器',
+    'description': 'BBScan是一个专业的网站漏洞扫描工具，用于发现网站的敏感目录、文件和潜在安全漏洞'
+}
+
+# ai_generator.py:72-80 (v2.5.0+)
+# 准备提示词变量
 variables = {
-    'app_name': 'BBScan网站扫描器',
+    'app_category': 'Scanner',
+    'app_name': 'BBScan',
+    'app_display_name': 'BBScan网站扫描器',
+    'app_description': 'BBScan是一个专业的网站漏洞扫描工具，用于发现网站的敏感目录、文件和潜在安全漏洞',
+    'ai_notes': '扫描结果应包含漏洞等级(high/medium/low)和具体路径信息',  # 新增
     'action': 'scan_url',
-    'parameters': '{"target_url": "https://example.com", ...}'
+    'parameters': '{"target_url": "https://example.com", "scan_type": "full", "max_depth": 3}',
+    'action_definition': '{"name": "scan_url", "display_name": "扫描URL", "description": "扫描指定URL的安全漏洞", "parameters": [...]}'
 }
 ```
 
 ##### 步骤 4: 模板替换
 ```python
-# ai_generator.py:54
+# ai_generator.py:78
 prompt = prompt_template.template.format(**variables)
 ```
 
-结果：
+结果(v2.5.0+):
 ```
-你是BBScan网站扫描器系统的模拟器。用户调用了scan_url操作，参数如下：
+你是BBScan网站扫描器系统的模拟器。
+
+# 应用信息
+- 分类: Scanner
+- 名称: BBScan
+- 显示名称: BBScan网站扫描器
+- 描述: BBScan是一个专业的网站漏洞扫描工具,用于发现网站的敏感目录、文件和潜在安全漏洞
+
+# 用户特殊要求
+扫描结果应包含漏洞等级(high/medium/low)和具体路径信息
+
+# 调用信息
+用户调用了 scan_url 操作,参数如下:
 {
   "target_url": "https://example.com",
   "scan_type": "full",
   "max_depth": 3
 }
 
-请生成一个真实的API响应结果（JSON格式）。响应应该：
+# 动作完整定义
+{
+  "name": "scan_url",
+  "display_name": "扫描URL",
+  "description": "扫描指定URL的安全漏洞",
+  "parameters": [...]
+}
+
+# 任务要求
+请生成一个真实的API响应结果(JSON格式)。响应应该:
 1. 符合真实系统的响应格式
 2. 包含合理的数据
 3. 反映操作的成功或失败状态
+4. 考虑应用描述中的业务场景
+5. 考虑动作定义中的描述和参数要求
+6. 如果用户提供了特殊要求,严格遵守这些要求
 
-直接返回JSON，不要任何其他说明文字。
+直接返回JSON,不要任何其他说明文字。
 ```
 
 ##### 步骤 5: 调用 OpenAI
@@ -179,11 +276,35 @@ db_manager.save_prompt_template(
     name="response_simulation",
     display_name="响应模拟提示词",
     description="用于模拟MCP工具调用响应",
-    template="新的模板内容，包含 {app_name}, {action}, {parameters} 变量",
+    template="""你是{app_display_name}系统的模拟器。
+
+# 应用信息
+- 分类: {app_category}
+- 名称: {app_name}
+- 显示名称: {app_display_name}
+- 描述: {app_description}
+
+# 用户特殊要求
+{ai_notes}
+
+# 调用信息
+用户调用了 {action} 操作,参数如下:
+{parameters}
+
+# 动作完整定义
+{action_definition}
+
+# 任务要求
+请生成一个真实的API响应结果(JSON格式)...""",
     variables=[
-        {"name": "app_name", "description": "应用名称"},
+        {"name": "app_category", "description": "应用分类"},
+        {"name": "app_name", "description": "应用内部名称"},
+        {"name": "app_display_name", "description": "应用显示名称"},
+        {"name": "app_description", "description": "应用详细描述"},
+        {"name": "ai_notes", "description": "用户对AI生成的特殊要求"},  # v2.5.0+新增
         {"name": "action", "description": "动作名称"},
-        {"name": "parameters", "description": "调用参数"}
+        {"name": "parameters", "description": "调用参数JSON字符串"},
+        {"name": "action_definition", "description": "动作完整定义JSON字符串"}
     ]
 )
 ```
@@ -196,21 +317,33 @@ db_manager.save_prompt_template(
     name="security_scan_template",
     display_name="安全扫描专用模板",
     description="用于安全扫描类应用",
-    template="""作为{app_name}安全扫描器，执行{action}扫描任务。
-目标：{target}
-配置：{config}
+    template="""你是{app_display_name}安全扫描系统。
 
-生成详细的安全扫描报告，包含：
+# 应用信息
+- 分类: {app_category}
+- 应用: {app_display_name}
+- 描述: {app_description}
+
+# 扫描任务
+执行 {action} 扫描任务，参数如下：
+{parameters}
+
+# 任务要求
+生成详细的安全扫描报告（JSON格式），包含：
 - 发现的漏洞
 - 风险等级
 - 修复建议
+- 扫描统计信息
+
+考虑应用描述中的安全扫描特点，生成符合{app_display_name}风格的专业报告。
 
 以JSON格式返回。""",
     variables=[
-        {"name": "app_name", "description": "扫描器名称"},
+        {"name": "app_category", "description": "应用分类"},
+        {"name": "app_display_name", "description": "扫描器显示名称"},
+        {"name": "app_description", "description": "扫描器描述"},
         {"name": "action", "description": "扫描类型"},
-        {"name": "target", "description": "扫描目标"},
-        {"name": "config", "description": "扫描配置"}
+        {"name": "parameters", "description": "扫描参数"}
     ]
 )
 ```
@@ -224,18 +357,51 @@ db_manager.save_prompt_template(
 - 网络设备类
 - 工单系统类
 
-### 2. 上下文增强
-在模板中添加更多上下文信息：
-```
-你是{app_name}系统的模拟器。
-系统版本：{version}
-当前时间：{timestamp}
-用户权限：{user_role}
+### 2. 利用ai_notes字段(v2.5.0+新增)
+**推荐做法**: 在创建应用时,通过ai_notes字段指定AI生成响应的特殊要求:
 
-用户调用了{action}操作...
+**示例1: 威胁情报系统**
+```
+ai_notes: "1.中文返回信息 2.结构化体现信息 3.同级别信息可以使用json array"
 ```
 
-### 3. 响应格式指导
+**示例2: HIDS系统**
+```
+ai_notes: "主机ID是8个数字字母大小写字母的组合。同时,操作系统分Windows/Linux,且还分具体的发行版。"
+```
+
+**示例3: 工单系统**
+```
+ai_notes: "- 创建工单后,会返回一个数字字母大小写8个字符组成的工单ID。在输出结果中明确工单ID:issue_id
+- 对指定工单做操作的动作,如果工单id不符合要求,可以返回错误或者失败的消息,提醒用户使用issue_id"
+```
+
+这些特殊要求会被传递给AI,使生成的响应更符合实际系统的行为特征。
+
+### 3. 上下文增强
+在模板中添加更多上下文信息:
+```
+你是{app_display_name}系统的模拟器。
+
+# 应用信息
+- 分类: {app_category}
+- 显示名称: {app_display_name}
+- 描述: {app_description}
+- 系统版本: {version}
+
+# 用户特殊要求
+{ai_notes}
+
+# 运行环境
+- 当前时间: {timestamp}
+- 用户权限: {user_role}
+- 环境类型: {environment}
+
+# 调用信息
+用户调用了 {action} 操作...
+```
+
+### 4. 响应格式指导
 提供更详细的响应格式示例：
 ```
 请按照以下格式生成响应：

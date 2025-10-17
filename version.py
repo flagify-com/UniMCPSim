@@ -3,11 +3,23 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.4.3"
-__version_info__ = (2, 4, 3)
+__version__ = "2.5.0"
+__version_info__ = (2, 5, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.5.0": {
+        "date": "2025-01-17",
+        "features": [
+            "Toast通知系统替代浏览器alert",
+            "应用名称URL安全字符验证(前后端)",
+            "智能数据库初始化(尊重用户删除)",
+            "Token权限手动绑定提醒",
+            "AI动作生成按钮防重复点击",
+            "优化response_simulation提示词模板(新增ai_notes字段)",
+            "优化action_generation提示词模板(支持default字段)"
+        ]
+    },
     "2.4.3": {
         "date": "2025-09-30",
         "features": [

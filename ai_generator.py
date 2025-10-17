@@ -42,8 +42,18 @@ class AIResponseGenerator:
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
 
-    def generate_response(self, app_name: str, action: str, parameters: Dict[str, Any], action_def: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        """生成模拟响应"""
+    def generate_response(self, app_info: Dict[str, Any], action: str, parameters: Dict[str, Any], action_def: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """生成模拟响应
+
+        Args:
+            app_info: 应用信息字典，包含 category, name, display_name, description
+            action: 动作名称
+            parameters: 用户调用参数
+            action_def: 动作完整定义
+        """
+
+        # 提取应用信息
+        app_name = app_info.get('display_name', app_info.get('name', 'Unknown'))
 
         # 如果AI未启用，返回默认响应
         if not self.enabled:
@@ -54,8 +64,17 @@ class AIResponseGenerator:
             prompt_template = self.db_manager.get_prompt_template('response_simulation')
             if prompt_template:
                 # 准备变量替换
+                ai_notes = app_info.get('ai_notes', '')
+                # 如果有 ai_notes，保留原文；如果没有，使用默认提示
+                if not ai_notes or ai_notes.strip() == '':
+                    ai_notes = '无特殊要求'
+
                 variables = {
-                    'app_name': app_name,
+                    'app_category': app_info.get('category', ''),
+                    'app_name': app_info.get('name', ''),
+                    'app_display_name': app_info.get('display_name', ''),
+                    'app_description': app_info.get('description', ''),
+                    'ai_notes': ai_notes,
                     'action': action,
                     'parameters': json.dumps(parameters, ensure_ascii=False, indent=2),
                     'action_definition': json.dumps(action_def, ensure_ascii=False, indent=2) if action_def else 'null'
@@ -64,19 +83,38 @@ class AIResponseGenerator:
                 # 使用变量替换生成最终的prompt
                 prompt = prompt_template.template.format(**variables)
             else:
-                # 如果没有找到模板，使用原来的硬编码提示词（包含动作定义）
+                # 如果没有找到模板，使用原来的硬编码提示词（包含应用完整信息）
                 action_def_str = json.dumps(action_def, ensure_ascii=False, indent=2) if action_def else 'null'
-                prompt = f"""你是{app_name}系统的模拟器。用户调用了{action}操作，参数如下：
+                ai_notes = app_info.get('ai_notes', '')
+                if not ai_notes or ai_notes.strip() == '':
+                    ai_notes = '无特殊要求'
+
+                prompt = f"""你是{app_info.get('display_name', app_name)}系统的模拟器。
+
+# 应用信息
+- 分类: {app_info.get('category', 'Unknown')}
+- 名称: {app_info.get('name', 'Unknown')}
+- 显示名称: {app_info.get('display_name', app_name)}
+- 描述: {app_info.get('description', '无描述')}
+
+# 用户特殊要求
+{ai_notes}
+
+# 调用信息
+用户调用了 {action} 操作，参数如下：
 {json.dumps(parameters, ensure_ascii=False, indent=2)}
 
-动作完整定义：
+# 动作完整定义
 {action_def_str}
 
+# 任务要求
 请生成一个真实的API响应结果（JSON格式）。响应应该：
 1. 符合真实系统的响应格式
 2. 包含合理的数据
 3. 反映操作的成功或失败状态
-4. 考虑参数的描述和类型要求
+4. 考虑应用描述中的业务场景
+5. 考虑动作定义中的描述和参数要求
+6. 如果用户提供了特殊要求，严格遵守这些要求
 
 直接返回JSON，不要任何其他说明文字。"""
 

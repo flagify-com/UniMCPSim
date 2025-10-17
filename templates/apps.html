@@ -41,57 +41,75 @@
 
     <!-- 创建应用模态框 -->
     <div id="createModal" class="modal">
-        <div class="modal-content large">
-            <h3 class="modal-title">创建新应用</h3>
+        <div class="modal-content extra-large">
+            <div class="modal-header">
+                <h3 class="modal-title">创建新应用</h3>
+                <div class="modal-header-actions">
+                    <button type="submit" form="createAppForm" id="createSubmitBtn" class="btn btn-primary">创建</button>
+                    <button type="button" onclick="hideModal()" class="btn btn-secondary">取消</button>
+                </div>
+            </div>
             <form id="createAppForm">
-                <div class="modal-split">
-                    <!-- 左侧：基本信息 -->
-                    <div>
-                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">基本信息</h4>
+                <div class="modal-three-columns">
+                    <!-- 左列：基本信息 (25%) -->
+                    <div class="modal-column-left">
+                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">1. 基本信息</h4>
+
                         <div class="form-group">
                             <label class="form-label">类别</label>
-                            <input type="text" name="category" class="form-control" required placeholder="例如：IM, Network, Security">
+                            <input type="text" name="category" class="form-control" required placeholder="如：Email、Firewall、CloudStorage">
                         </div>
                         <div class="form-group">
                             <label class="form-label">名称</label>
-                            <input type="text" name="name" class="form-control" required placeholder="例如：WeChat, Cisco3750">
+                            <input type="text" name="name" class="form-control" required placeholder="如：Gmail、FortiGate、AWSStorage">
                         </div>
                         <div class="form-group">
                             <label class="form-label">显示名称</label>
-                            <input type="text" name="display_name" class="form-control" required placeholder="例如：企业微信">
+                            <input type="text" name="display_name" class="form-control" required placeholder="如：Gmail邮箱、飞塔防火墙、AWS对象存储">
                         </div>
                         <div class="form-group">
                             <label class="form-label">描述</label>
-                            <textarea name="description" class="form-control" rows="3" placeholder="应用的详细描述"></textarea>
+                            <textarea name="description" class="form-control" rows="3" placeholder="应用的简要说明，如：提供企业邮件收发、通讯录管理等功能"></textarea>
                         </div>
+                    </div>
+
+                    <!-- 中列：AI智能生成配置 (30%) -->
+                    <div class="modal-column-center">
+                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">2. AI智能生成配置</h4>
+
                         <div class="form-group">
                             <label class="form-label">智能生成提示词</label>
-                            <textarea id="createPrompt" class="form-control" rows="4" placeholder="描述需要生成的动作，例如：
-工具1: 查询防火墙健康状态
-工具2: 封禁一个IP地址
-工具3: 解封一个IP地址
-工具4: 查询IP是否被封禁"></textarea>
-                            <button type="button" id="generateActions" class="btn btn-secondary" style="margin-top: 0.5rem;">
-                                🤖 自动生成动作定义
-                            </button>
+                            <textarea id="createPrompt" class="form-control" rows="10" placeholder="描述需要生成的动作，例如：
+工具1：封禁一个给定的IP地址
+工具2：发送邮件email，必填参数：title、subject、text_body和mailto
+工具3：查询系统健康状态，返回CPU、内存、磁盘使用率"></textarea>
                         </div>
-                    </div>
 
-                    <!-- 右侧：动作定义 -->
-                    <div>
-                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">动作定义</h4>
+                        <button type="button" id="generateActions" class="btn btn-secondary btn-block" style="margin-bottom: 1.5rem;" disabled>
+                            3. 🤖 自动生成动作定义
+                        </button>
+
                         <div class="form-group">
-                            <label class="form-label">JSON格式动作配置</label>
-                            <div id="createActionsEditor" class="monaco-editor-container"></div>
-                            <textarea id="createActions" name="actions" style="display: none;"></textarea>
+                            <label class="form-label">对AI模拟结果的其他要求/参考信息（可选）</label>
+                            <textarea name="ai_notes" class="form-control" rows="10" placeholder="对模拟响应的格式、风格、数据样例等要求，帮助AI生成更符合预期的结果
+
+示例：
+- 所有时间字段使用ISO 8601格式（如：2024-01-15T10:30:00Z）
+- 错误响应包含error_code和error_message字段
+- 成功响应格式：{&quot;status&quot;: &quot;success&quot;, &quot;data&quot;: {...}, &quot;timestamp&quot;: &quot;...&quot;}
+- IP地址字段需包含地理位置信息（国家、城市）"></textarea>
                         </div>
                     </div>
-                </div>
 
-                <div class="d-flex gap-2" style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--bg-300);">
-                    <button type="submit" class="btn btn-primary">创建</button>
-                    <button type="button" onclick="hideModal()" class="btn btn-secondary">取消</button>
+                    <!-- 右列：JSON编辑器 (45%) -->
+                    <div class="modal-column-right">
+                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">4. JSON格式动作配置</h4>
+                        <div id="createActionsEditor" class="monaco-editor-container-large" style="height: 100%; min-height: 600px;"></div>
+                        <textarea id="createActions" name="actions" style="display: none;"></textarea>
+                    </div>
                 </div>
+                <!-- 底部安全垫：防止内容贴到弹窗底部边界 -->
+                <div class="modal-bottom-spacer"></div>
             </form>
         </div>
     </div>
@@ -120,7 +138,11 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">描述</label>
-                            <textarea id="editDescription" name="description" class="form-control" rows="6"></textarea>
+                            <textarea id="editDescription" name="description" class="form-control" rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">对AI模拟结果的其他要求/参考信息（可选）</label>
+                            <textarea id="editAiNotes" name="ai_notes" class="form-control" rows="6" placeholder="对模拟响应的格式、风格、数据样例等要求，帮助AI生成更符合预期的结果"></textarea>
                         </div>
                     </div>
 
@@ -190,7 +212,7 @@
 
     <!-- MCP配置模态框 -->
     <div id="mcpConfigModal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content medium">
             <h3 class="modal-title">MCP客户端配置</h3>
             <div class="alert alert-info" style="margin-bottom: 1rem;">
                 复制以下配置到Cherry Studio、Claude Desktop或Cline的MCP配置文件中。<br>
@@ -210,6 +232,51 @@
     <script>
         let editActionsEditor = null;
         let createActionsEditor = null;
+
+        // 验证应用名称/类别
+        function validateAppName(name, fieldName) {
+            if (!name || name.trim() === '') {
+                return { valid: false, error: `${fieldName}不能为空` };
+            }
+
+            // 只允许字母、数字、下划线、连字符
+            const regex = /^[a-zA-Z0-9_-]+$/;
+            if (!regex.test(name)) {
+                return { valid: false, error: `${fieldName}只能包含字母、数字、下划线和连字符` };
+            }
+
+            // 长度限制
+            if (name.length < 2 || name.length > 50) {
+                return { valid: false, error: `${fieldName}长度必须在2-50个字符之间` };
+            }
+
+            return { valid: true, error: '' };
+        }
+
+        // 显示通知提示
+        function showNotification(message, type = 'info') {
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = `notification-toast ${type}`;
+            notification.innerHTML = `
+                <span class="notification-icon">${icons[type] || icons.info}</span>
+                <div class="notification-content">${message}</div>
+                <button class="notification-close" onclick="this.parentElement.remove()">✕</button>
+            `;
+
+            document.body.appendChild(notification);
+
+            // 自动消失
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
 
         // 初始化Monaco Editor
         require.config({ paths: { vs: '/static/js/monaco-editor/vs' } });
@@ -259,6 +326,22 @@
                 const textarea = document.getElementById('createActions');
                 textarea.value = createActionsEditor.getValue();
             });
+
+            // 监听提示词输入框变化，控制AI生成按钮状态
+            document.getElementById('createPrompt').addEventListener('input', (e) => {
+                const generateBtn = document.getElementById('generateActions');
+                const hasContent = e.target.value.trim().length > 0;
+                generateBtn.disabled = !hasContent;
+
+                // 如果有内容，变成蓝色按钮
+                if (hasContent) {
+                    generateBtn.classList.remove('btn-secondary');
+                    generateBtn.classList.add('btn-primary');
+                } else {
+                    generateBtn.classList.remove('btn-primary');
+                    generateBtn.classList.add('btn-secondary');
+                }
+            });
         });
 
         async function loadApps() {
@@ -296,6 +379,12 @@
 
         function showCreateModal() {
             document.getElementById('createModal').classList.add('show');
+
+            // 初始化AI生成按钮状态
+            const generateBtn = document.getElementById('generateActions');
+            generateBtn.disabled = true;
+            generateBtn.classList.remove('btn-primary');
+            generateBtn.classList.add('btn-secondary');
         }
 
         function hideModal() {
@@ -316,6 +405,7 @@
                 document.getElementById('editName').value = app.name;
                 document.getElementById('editDisplayName').value = app.display_name;
                 document.getElementById('editDescription').value = app.description || '';
+                document.getElementById('editAiNotes').value = app.ai_notes || '';
 
                 // 设置Monaco Editor的内容
                 const actionsJson = JSON.stringify(app.template?.actions || [], null, 2);
@@ -342,7 +432,7 @@
             const prompt = document.getElementById('createPrompt').value;
 
             if (!prompt.trim()) {
-                alert('请先填写智能生成提示词');
+                showNotification('请先填写智能生成提示词', 'error');
                 return;
             }
 
@@ -375,17 +465,24 @@
                     }
 
                     if (result.note) {
-                        alert('动作定义已生成！\n\n提示：' + result.note);
+                        showNotification('动作定义已生成！\n\n提示：' + result.note, 'success');
                     } else {
-                        alert('动作定义已生成成功！请检查并根据需要调整。');
+                        showNotification('✅ 动作定义已生成成功！请检查并根据需要调整。', 'success');
                     }
+
+                    // 恢复按钮状态
+                    button.textContent = originalText;
+                    // 保持按钮启用状态(蓝色)，因为提示词还在
                 } else {
-                    alert('生成失败：' + result.error);
+                    showNotification('生成失败：' + result.error, 'error');
+                    // 失败时也恢复按钮
+                    button.textContent = originalText;
+                    button.disabled = false;
                 }
             } catch (error) {
                 console.error('Generation failed:', error);
-                alert('生成过程中发生错误，请稍后重试');
-            } finally {
+                showNotification('生成过程中发生错误，请稍后重试', 'error');
+                // 出错时恢复按钮
                 button.textContent = originalText;
                 button.disabled = false;
             }
@@ -394,6 +491,22 @@
         document.getElementById('createAppForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+
+            // 前端验证类别和名称
+            const category = formData.get('category');
+            const name = formData.get('name');
+
+            const categoryValidation = validateAppName(category, '类别');
+            if (!categoryValidation.valid) {
+                showNotification(categoryValidation.error, 'error');
+                return;
+            }
+
+            const nameValidation = validateAppName(name, '名称');
+            if (!nameValidation.valid) {
+                showNotification(nameValidation.error, 'error');
+                return;
+            }
 
             try {
                 // 从Monaco Editor或textarea获取actions内容
@@ -409,29 +522,40 @@
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        category: formData.get('category'),
-                        name: formData.get('name'),
+                        category: category,
+                        name: name,
                         display_name: formData.get('display_name'),
                         description: formData.get('description'),
+                        ai_notes: formData.get('ai_notes') || '',
                         template: {actions}
                     })
                 });
 
                 if (response.ok) {
+                    const result = await response.json();
                     hideModal();
                     loadApps();
-                    alert('应用创建成功');
+                    // 显示后端返回的提示消息
+                    showNotification(result.message || '应用创建成功', 'success');
                     // 重置表单
                     document.getElementById('createAppForm').reset();
                     document.getElementById('createPrompt').value = '';
+
+                    // 重置AI生成按钮状态
+                    const generateBtn = document.getElementById('generateActions');
+                    generateBtn.disabled = true;
+                    generateBtn.classList.remove('btn-primary');
+                    generateBtn.classList.add('btn-secondary');
+
                     if (createActionsEditor) {
                         createActionsEditor.setValue('[\n  {\n    "name": "example_action",\n    "display_name": "示例动作",\n    "description": "这是一个示例动作",\n    "parameters": [\n      {\n        "key": "input",\n        "type": "String",\n        "required": true,\n        "description": "输入参数"\n      }\n    ]\n  }\n]');
                     }
                 } else {
-                    alert('创建失败：' + (await response.text()));
+                    const errorData = await response.json();
+                    showNotification('创建失败：' + (errorData.error || '未知错误'), 'error');
                 }
             } catch (error) {
-                alert('JSON格式错误：' + error.message);
+                showNotification('JSON格式错误：' + error.message, 'error');
             }
         });
 
@@ -440,16 +564,33 @@
             const formData = new FormData(e.target);
             const appId = document.getElementById('editAppId').value;
 
+            // 前端验证类别和名称
+            const category = formData.get('category');
+            const name = formData.get('name');
+
+            const categoryValidation = validateAppName(category, '类别');
+            if (!categoryValidation.valid) {
+                showNotification(categoryValidation.error, 'error');
+                return;
+            }
+
+            const nameValidation = validateAppName(name, '名称');
+            if (!nameValidation.valid) {
+                showNotification(nameValidation.error, 'error');
+                return;
+            }
+
             try {
                 const actions = JSON.parse(formData.get('actions') || '[]');
                 const response = await fetch(`/admin/api/apps/${appId}`, {
                     method: 'PUT',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        category: formData.get('category'),
-                        name: formData.get('name'),
+                        category: category,
+                        name: name,
                         display_name: formData.get('display_name'),
                         description: formData.get('description'),
+                        ai_notes: formData.get('ai_notes') || '',
                         template: {actions}
                     })
                 });
@@ -457,12 +598,13 @@
                 if (response.ok) {
                     hideEditModal();
                     loadApps();
-                    alert('应用更新成功');
+                    showNotification('应用更新成功', 'success');
                 } else {
-                    alert('更新失败：' + (await response.text()));
+                    const errorData = await response.json();
+                    showNotification('更新失败：' + (errorData.error || '未知错误'), 'error');
                 }
             } catch (error) {
-                alert('JSON格式错误');
+                showNotification('JSON格式错误：' + error.message, 'error');
             }
         });
 

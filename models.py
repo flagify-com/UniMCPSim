@@ -52,6 +52,7 @@ class Application(Base):
     category = Column(String(50), nullable=False)  # e.g., "IM"
     display_name = Column(String(100), nullable=False)
     description = Column(Text)
+    ai_notes = Column(Text, nullable=True)  # AI生成备注：对格式、风格等要求，样例数据等
     template = Column(JSON)  # 存储应用的动作和参数定义
     enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -361,6 +362,7 @@ class DatabaseManager:
 4. parameters: 根据动作实际需求决定，可以有参数，也可以没有参数
 5. key: 参数名要有实际指导意义，便于理解和调用
 6. description: 参数说明要具体，包括数据格式、必要性等信息
+7. default: 可选参数可以设置默认值，方便用户使用（如：duration_minutes默认60，page_size默认10等）
 
 请生成符合以下格式的JSON数组，包含用户描述的所有动作：
 
@@ -374,7 +376,8 @@ class DatabaseManager:
         "key": "参数的英文键名，使用snake_case，要能清楚表达参数含义",
         "type": "参数类型：String|Number|Boolean|Object|Array",
         "required": true,
-        "description": "参数的详细说明，包括格式要求、取值范围等"
+        "description": "参数的详细说明，包括格式要求、取值范围等",
+        "default": "可选字段，仅在required=false时使用，提供合理的默认值"
       }}
     ]
   }}
@@ -403,7 +406,8 @@ class DatabaseManager:
         "key": "duration_minutes",
         "type": "Number",
         "required": false,
-        "description": "封禁时长（分钟），0表示永久封禁，默认60分钟"
+        "default": 60,
+        "description": "封禁时长（分钟），0表示永久封禁"
       }},
       {{
         "key": "reason",
@@ -449,17 +453,32 @@ class DatabaseManager:
 请严格按照JSON格式返回，不要包含任何其他说明文字。"""
 
             # 响应模拟提示词模板
-            response_simulation_template = """你是{app_name}系统的模拟器。用户调用了{action}操作，参数如下：
+            response_simulation_template = """你是{app_display_name}系统的模拟器。
+
+# 应用信息
+- 分类: {app_category}
+- 名称: {app_name}
+- 显示名称: {app_display_name}
+- 描述: {app_description}
+
+# 用户特殊要求
+{ai_notes}
+
+# 调用信息
+用户调用了 {action} 操作，参数如下：
 {parameters}
 
-动作完整定义：
+# 动作完整定义
 {action_definition}
 
+# 任务要求
 请生成一个真实的API响应结果（JSON格式）。响应应该：
 1. 符合真实系统的响应格式
 2. 包含合理的数据
 3. 反映操作的成功或失败状态
-4. 考虑动作定义中的描述和参数要求
+4. 考虑应用描述中的业务场景
+5. 考虑动作定义中的描述和参数要求
+6. 如果用户提供了特殊要求，严格遵守这些要求
 
 直接返回JSON，不要任何其他说明文字。"""
 
@@ -484,7 +503,11 @@ class DatabaseManager:
                 description="用于模拟MCP工具调用响应的提示词模板",
                 template=response_simulation_template,
                 variables=[
-                    {"name": "app_name", "description": "应用名称"},
+                    {"name": "app_category", "description": "应用分类（如：Security, IM, Network等）"},
+                    {"name": "app_name", "description": "应用内部名称（如：WeChat, VirusTotal等）"},
+                    {"name": "app_display_name", "description": "应用显示名称（如：企业微信、VirusTotal等）"},
+                    {"name": "app_description", "description": "应用详细描述，说明其功能和用途"},
+                    {"name": "ai_notes", "description": "用户对AI生成的特殊要求（格式、风格、样例数据等）"},
                     {"name": "action", "description": "动作名称"},
                     {"name": "parameters", "description": "调用参数JSON字符串"},
                     {"name": "action_definition", "description": "动作完整定义JSON字符串"}

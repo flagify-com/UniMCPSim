@@ -134,11 +134,28 @@ def get_apps():
             'category': app.category,
             'display_name': app.display_name,
             'description': app.description,
+            'ai_notes': app.ai_notes,
             'enabled': app.enabled,
             'created_at': app.created_at.isoformat()
         } for app in apps])
     finally:
         session_db.close()
+
+def validate_app_name(name, field_name='名称'):
+    """验证应用名称/类别是否符合URL路径规范"""
+    import re
+    if not name:
+        return False, f'{field_name}不能为空'
+
+    # 只允许字母、数字、下划线、连字符
+    if not re.match(r'^[a-zA-Z0-9_-]+$', name):
+        return False, f'{field_name}只能包含字母、数字、下划线和连字符'
+
+    # 长度限制
+    if len(name) < 2 or len(name) > 50:
+        return False, f'{field_name}长度必须在2-50个字符之间'
+
+    return True, ''
 
 @app.route('/admin/api/apps', methods=['POST'])
 @admin_required
@@ -147,6 +164,16 @@ def create_app():
     data = request.json
     session_db = db_manager.get_session()
     try:
+        # 验证类别名称
+        valid, error = validate_app_name(data.get('category', ''), '类别')
+        if not valid:
+            return jsonify({'error': error}), 400
+
+        # 验证应用名称
+        valid, error = validate_app_name(data.get('name', ''), '名称')
+        if not valid:
+            return jsonify({'error': error}), 400
+
         # 检查是否已存在
         existing = session_db.query(Application).filter_by(
             category=data['category'],
@@ -160,11 +187,15 @@ def create_app():
             category=data['category'],
             display_name=data['display_name'],
             description=data.get('description', ''),
+            ai_notes=data.get('ai_notes', ''),
             template=data.get('template', {})
         )
         session_db.add(app)
         session_db.commit()
-        return jsonify({'id': app.id})
+        return jsonify({
+            'id': app.id,
+            'message': '应用创建成功!请前往"令牌管理"页面为相关Token绑定此应用的访问权限。'
+        })
     finally:
         session_db.close()
 
@@ -184,6 +215,7 @@ def get_app_detail(app_id):
             'name': app.name,
             'display_name': app.display_name,
             'description': app.description,
+            'ai_notes': app.ai_notes,
             'enabled': app.enabled,
             'template': app.template
         })
@@ -204,11 +236,24 @@ def update_app(app_id):
 
         # PUT方法用于完全更新，PATCH用于部分更新
         if request.method == 'PUT':
+            # 验证类别名称（如果提供）
+            if 'category' in data:
+                valid, error = validate_app_name(data['category'], '类别')
+                if not valid:
+                    return jsonify({'error': error}), 400
+
+            # 验证应用名称（如果提供）
+            if 'name' in data:
+                valid, error = validate_app_name(data['name'], '名称')
+                if not valid:
+                    return jsonify({'error': error}), 400
+
             # 完全更新应用
             app.category = data.get('category', app.category)
             app.name = data.get('name', app.name)
             app.display_name = data.get('display_name', app.display_name)
             app.description = data.get('description', app.description)
+            app.ai_notes = data.get('ai_notes', app.ai_notes)
             app.template = data.get('template', app.template)
             if 'enabled' in data:
                 app.enabled = data['enabled']
@@ -220,9 +265,17 @@ def update_app(app_id):
                 app.template = data['template']
             if 'description' in data:
                 app.description = data['description']
+            if 'ai_notes' in data:
+                app.ai_notes = data['ai_notes']
             if 'category' in data:
+                valid, error = validate_app_name(data['category'], '类别')
+                if not valid:
+                    return jsonify({'error': error}), 400
                 app.category = data['category']
             if 'name' in data:
+                valid, error = validate_app_name(data['name'], '名称')
+                if not valid:
+                    return jsonify({'error': error}), 400
                 app.name = data['name']
             if 'display_name' in data:
                 app.display_name = data['display_name']
