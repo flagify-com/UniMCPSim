@@ -141,6 +141,22 @@ def get_apps():
     finally:
         session_db.close()
 
+def validate_app_name(name, field_name='名称'):
+    """验证应用名称/类别是否符合URL路径规范"""
+    import re
+    if not name:
+        return False, f'{field_name}不能为空'
+
+    # 只允许字母、数字、下划线、连字符
+    if not re.match(r'^[a-zA-Z0-9_-]+$', name):
+        return False, f'{field_name}只能包含字母、数字、下划线和连字符'
+
+    # 长度限制
+    if len(name) < 2 or len(name) > 50:
+        return False, f'{field_name}长度必须在2-50个字符之间'
+
+    return True, ''
+
 @app.route('/admin/api/apps', methods=['POST'])
 @admin_required
 def create_app():
@@ -148,6 +164,16 @@ def create_app():
     data = request.json
     session_db = db_manager.get_session()
     try:
+        # 验证类别名称
+        valid, error = validate_app_name(data.get('category', ''), '类别')
+        if not valid:
+            return jsonify({'error': error}), 400
+
+        # 验证应用名称
+        valid, error = validate_app_name(data.get('name', ''), '名称')
+        if not valid:
+            return jsonify({'error': error}), 400
+
         # 检查是否已存在
         existing = session_db.query(Application).filter_by(
             category=data['category'],
@@ -207,6 +233,18 @@ def update_app(app_id):
 
         # PUT方法用于完全更新，PATCH用于部分更新
         if request.method == 'PUT':
+            # 验证类别名称（如果提供）
+            if 'category' in data:
+                valid, error = validate_app_name(data['category'], '类别')
+                if not valid:
+                    return jsonify({'error': error}), 400
+
+            # 验证应用名称（如果提供）
+            if 'name' in data:
+                valid, error = validate_app_name(data['name'], '名称')
+                if not valid:
+                    return jsonify({'error': error}), 400
+
             # 完全更新应用
             app.category = data.get('category', app.category)
             app.name = data.get('name', app.name)
@@ -227,8 +265,14 @@ def update_app(app_id):
             if 'ai_notes' in data:
                 app.ai_notes = data['ai_notes']
             if 'category' in data:
+                valid, error = validate_app_name(data['category'], '类别')
+                if not valid:
+                    return jsonify({'error': error}), 400
                 app.category = data['category']
             if 'name' in data:
+                valid, error = validate_app_name(data['name'], '名称')
+                if not valid:
+                    return jsonify({'error': error}), 400
                 app.name = data['name']
             if 'display_name' in data:
                 app.display_name = data['display_name']

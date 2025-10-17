@@ -138,7 +138,11 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">描述</label>
-                            <textarea id="editDescription" name="description" class="form-control" rows="6"></textarea>
+                            <textarea id="editDescription" name="description" class="form-control" rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">对AI模拟结果的其他要求/参考信息（可选）</label>
+                            <textarea id="editAiNotes" name="ai_notes" class="form-control" rows="6" placeholder="对模拟响应的格式、风格、数据样例等要求，帮助AI生成更符合预期的结果"></textarea>
                         </div>
                     </div>
 
@@ -228,6 +232,51 @@
     <script>
         let editActionsEditor = null;
         let createActionsEditor = null;
+
+        // 验证应用名称/类别
+        function validateAppName(name, fieldName) {
+            if (!name || name.trim() === '') {
+                return { valid: false, error: `${fieldName}不能为空` };
+            }
+
+            // 只允许字母、数字、下划线、连字符
+            const regex = /^[a-zA-Z0-9_-]+$/;
+            if (!regex.test(name)) {
+                return { valid: false, error: `${fieldName}只能包含字母、数字、下划线和连字符` };
+            }
+
+            // 长度限制
+            if (name.length < 2 || name.length > 50) {
+                return { valid: false, error: `${fieldName}长度必须在2-50个字符之间` };
+            }
+
+            return { valid: true, error: '' };
+        }
+
+        // 显示通知提示
+        function showNotification(message, type = 'info') {
+            const icons = {
+                success: '✅',
+                error: '❌',
+                info: 'ℹ️'
+            };
+
+            const notification = document.createElement('div');
+            notification.className = `notification-toast ${type}`;
+            notification.innerHTML = `
+                <span class="notification-icon">${icons[type] || icons.info}</span>
+                <div class="notification-content">${message}</div>
+                <button class="notification-close" onclick="this.parentElement.remove()">✕</button>
+            `;
+
+            document.body.appendChild(notification);
+
+            // 自动消失
+            setTimeout(() => {
+                notification.style.animation = 'fadeOut 0.3s ease-out';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
 
         // 初始化Monaco Editor
         require.config({ paths: { vs: '/static/js/monaco-editor/vs' } });
@@ -356,6 +405,7 @@
                 document.getElementById('editName').value = app.name;
                 document.getElementById('editDisplayName').value = app.display_name;
                 document.getElementById('editDescription').value = app.description || '';
+                document.getElementById('editAiNotes').value = app.ai_notes || '';
 
                 // 设置Monaco Editor的内容
                 const actionsJson = JSON.stringify(app.template?.actions || [], null, 2);
@@ -382,7 +432,7 @@
             const prompt = document.getElementById('createPrompt').value;
 
             if (!prompt.trim()) {
-                alert('请先填写智能生成提示词');
+                showNotification('请先填写智能生成提示词', 'error');
                 return;
             }
 
@@ -415,17 +465,24 @@
                     }
 
                     if (result.note) {
-                        alert('动作定义已生成！\n\n提示：' + result.note);
+                        showNotification('动作定义已生成！\n\n提示：' + result.note, 'success');
                     } else {
-                        alert('动作定义已生成成功！请检查并根据需要调整。');
+                        showNotification('✅ 动作定义已生成成功！请检查并根据需要调整。', 'success');
                     }
+
+                    // 恢复按钮状态
+                    button.textContent = originalText;
+                    // 保持按钮启用状态(蓝色)，因为提示词还在
                 } else {
-                    alert('生成失败：' + result.error);
+                    showNotification('生成失败：' + result.error, 'error');
+                    // 失败时也恢复按钮
+                    button.textContent = originalText;
+                    button.disabled = false;
                 }
             } catch (error) {
                 console.error('Generation failed:', error);
-                alert('生成过程中发生错误，请稍后重试');
-            } finally {
+                showNotification('生成过程中发生错误，请稍后重试', 'error');
+                // 出错时恢复按钮
                 button.textContent = originalText;
                 button.disabled = false;
             }
@@ -434,6 +491,22 @@
         document.getElementById('createAppForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
+
+            // 前端验证类别和名称
+            const category = formData.get('category');
+            const name = formData.get('name');
+
+            const categoryValidation = validateAppName(category, '类别');
+            if (!categoryValidation.valid) {
+                showNotification(categoryValidation.error, 'error');
+                return;
+            }
+
+            const nameValidation = validateAppName(name, '名称');
+            if (!nameValidation.valid) {
+                showNotification(nameValidation.error, 'error');
+                return;
+            }
 
             try {
                 // 从Monaco Editor或textarea获取actions内容
@@ -449,8 +522,8 @@
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        category: formData.get('category'),
-                        name: formData.get('name'),
+                        category: category,
+                        name: name,
                         display_name: formData.get('display_name'),
                         description: formData.get('description'),
                         ai_notes: formData.get('ai_notes') || '',
@@ -461,7 +534,7 @@
                 if (response.ok) {
                     hideModal();
                     loadApps();
-                    alert('应用创建成功');
+                    showNotification('应用创建成功', 'success');
                     // 重置表单
                     document.getElementById('createAppForm').reset();
                     document.getElementById('createPrompt').value = '';
@@ -476,10 +549,11 @@
                         createActionsEditor.setValue('[\n  {\n    "name": "example_action",\n    "display_name": "示例动作",\n    "description": "这是一个示例动作",\n    "parameters": [\n      {\n        "key": "input",\n        "type": "String",\n        "required": true,\n        "description": "输入参数"\n      }\n    ]\n  }\n]');
                     }
                 } else {
-                    alert('创建失败：' + (await response.text()));
+                    const errorData = await response.json();
+                    showNotification('创建失败：' + (errorData.error || '未知错误'), 'error');
                 }
             } catch (error) {
-                alert('JSON格式错误：' + error.message);
+                showNotification('JSON格式错误：' + error.message, 'error');
             }
         });
 
@@ -488,16 +562,33 @@
             const formData = new FormData(e.target);
             const appId = document.getElementById('editAppId').value;
 
+            // 前端验证类别和名称
+            const category = formData.get('category');
+            const name = formData.get('name');
+
+            const categoryValidation = validateAppName(category, '类别');
+            if (!categoryValidation.valid) {
+                showNotification(categoryValidation.error, 'error');
+                return;
+            }
+
+            const nameValidation = validateAppName(name, '名称');
+            if (!nameValidation.valid) {
+                showNotification(nameValidation.error, 'error');
+                return;
+            }
+
             try {
                 const actions = JSON.parse(formData.get('actions') || '[]');
                 const response = await fetch(`/admin/api/apps/${appId}`, {
                     method: 'PUT',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        category: formData.get('category'),
-                        name: formData.get('name'),
+                        category: category,
+                        name: name,
                         display_name: formData.get('display_name'),
                         description: formData.get('description'),
+                        ai_notes: formData.get('ai_notes') || '',
                         template: {actions}
                     })
                 });
@@ -505,12 +596,13 @@
                 if (response.ok) {
                     hideEditModal();
                     loadApps();
-                    alert('应用更新成功');
+                    showNotification('应用更新成功', 'success');
                 } else {
-                    alert('更新失败：' + (await response.text()));
+                    const errorData = await response.json();
+                    showNotification('更新失败：' + (errorData.error || '未知错误'), 'error');
                 }
             } catch (error) {
-                alert('JSON格式错误');
+                showNotification('JSON格式错误：' + error.message, 'error');
             }
         });
 
