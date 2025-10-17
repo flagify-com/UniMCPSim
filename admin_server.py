@@ -134,6 +134,7 @@ def get_apps():
             'category': app.category,
             'display_name': app.display_name,
             'description': app.description,
+            'ai_notes': app.ai_notes,
             'enabled': app.enabled,
             'created_at': app.created_at.isoformat()
         } for app in apps])
@@ -160,6 +161,7 @@ def create_app():
             category=data['category'],
             display_name=data['display_name'],
             description=data.get('description', ''),
+            ai_notes=data.get('ai_notes', ''),
             template=data.get('template', {})
         )
         session_db.add(app)
@@ -184,6 +186,7 @@ def get_app_detail(app_id):
             'name': app.name,
             'display_name': app.display_name,
             'description': app.description,
+            'ai_notes': app.ai_notes,
             'enabled': app.enabled,
             'template': app.template
         })
@@ -209,6 +212,7 @@ def update_app(app_id):
             app.name = data.get('name', app.name)
             app.display_name = data.get('display_name', app.display_name)
             app.description = data.get('description', app.description)
+            app.ai_notes = data.get('ai_notes', app.ai_notes)
             app.template = data.get('template', app.template)
             if 'enabled' in data:
                 app.enabled = data['enabled']
@@ -220,6 +224,8 @@ def update_app(app_id):
                 app.template = data['template']
             if 'description' in data:
                 app.description = data['description']
+            if 'ai_notes' in data:
+                app.ai_notes = data['ai_notes']
             if 'category' in data:
                 app.category = data['category']
             if 'name' in data:

@@ -52,6 +52,7 @@ class Application(Base):
     category = Column(String(50), nullable=False)  # e.g., "IM"
     display_name = Column(String(100), nullable=False)
     description = Column(Text)
+    ai_notes = Column(Text, nullable=True)  # AI生成备注：对格式、风格等要求，样例数据等
     template = Column(JSON)  # 存储应用的动作和参数定义
     enabled = Column(Boolean, default=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -457,6 +458,9 @@ class DatabaseManager:
 - 显示名称: {app_display_name}
 - 描述: {app_description}
 
+# 用户特殊要求
+{ai_notes}
+
 # 调用信息
 用户调用了 {action} 操作，参数如下：
 {parameters}
@@ -471,6 +475,7 @@ class DatabaseManager:
 3. 反映操作的成功或失败状态
 4. 考虑应用描述中的业务场景
 5. 考虑动作定义中的描述和参数要求
+6. 如果用户提供了特殊要求，严格遵守这些要求
 
 直接返回JSON，不要任何其他说明文字。"""
 
@@ -499,6 +504,7 @@ class DatabaseManager:
                     {"name": "app_name", "description": "应用内部名称（如：WeChat, VirusTotal等）"},
                     {"name": "app_display_name", "description": "应用显示名称（如：企业微信、VirusTotal等）"},
                     {"name": "app_description", "description": "应用详细描述，说明其功能和用途"},
+                    {"name": "ai_notes", "description": "用户对AI生成的特殊要求（格式、风格、样例数据等）"},
                     {"name": "action", "description": "动作名称"},
                     {"name": "parameters", "description": "调用参数JSON字符串"},
                     {"name": "action_definition", "description": "动作完整定义JSON字符串"}

@@ -41,49 +41,65 @@
 
     <!-- 创建应用模态框 -->
     <div id="createModal" class="modal">
-        <div class="modal-content large">
+        <div class="modal-content extra-large">
             <h3 class="modal-title">创建新应用</h3>
             <form id="createAppForm">
-                <div class="modal-split">
-                    <!-- 左侧：基本信息 -->
-                    <div>
-                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">基本信息</h4>
-                        <div class="form-group">
-                            <label class="form-label">类别</label>
-                            <input type="text" name="category" class="form-control" required placeholder="例如：IM, Network, Security">
+                <div class="modal-split-new">
+                    <!-- 左侧：基本信息 + JSON编辑器 (55%) -->
+                    <div class="modal-left">
+                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">基本信息与JSON配置</h4>
+
+                        <!-- 紧凑的基本信息区 (无label, 使用placeholder) -->
+                        <div class="form-group-compact">
+                            <input type="text" name="category" class="form-control" required placeholder="类别，如：IM, Network, Security">
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">名称</label>
-                            <input type="text" name="name" class="form-control" required placeholder="例如：WeChat, Cisco3750">
+                        <div class="form-group-compact">
+                            <input type="text" name="name" class="form-control" required placeholder="名称，如：WeChat, CiscoRouter">
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">显示名称</label>
-                            <input type="text" name="display_name" class="form-control" required placeholder="例如：企业微信">
+                        <div class="form-group-compact">
+                            <input type="text" name="display_name" class="form-control" required placeholder="显示名称，如：企业微信">
                         </div>
-                        <div class="form-group">
-                            <label class="form-label">描述</label>
-                            <textarea name="description" class="form-control" rows="3" placeholder="应用的详细描述"></textarea>
+                        <div class="form-group-compact">
+                            <textarea name="description" class="form-control" rows="4" placeholder="应用的详细描述"></textarea>
                         </div>
+
+                        <!-- 分隔线 -->
+                        <div style="border-top: 1px solid var(--bg-300); margin: 1rem 0;"></div>
+
+                        <!-- JSON编辑器 -->
                         <div class="form-group">
-                            <label class="form-label">智能生成提示词</label>
-                            <textarea id="createPrompt" class="form-control" rows="4" placeholder="描述需要生成的动作，例如：
-工具1: 查询防火墙健康状态
-工具2: 封禁一个IP地址
-工具3: 解封一个IP地址
-工具4: 查询IP是否被封禁"></textarea>
-                            <button type="button" id="generateActions" class="btn btn-secondary" style="margin-top: 0.5rem;">
-                                🤖 自动生成动作定义
-                            </button>
+                            <label class="form-label" style="font-weight: 600; color: var(--primary-100);">JSON格式动作配置</label>
+                            <div id="createActionsEditor" class="monaco-editor-container-large"></div>
+                            <textarea id="createActions" name="actions" style="display: none;"></textarea>
                         </div>
                     </div>
 
-                    <!-- 右侧：动作定义 -->
-                    <div>
-                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">动作定义</h4>
+                    <!-- 右侧：AI智能生成配置 (45%) -->
+                    <div class="modal-right">
+                        <h4 style="color: var(--primary-100); margin-bottom: 1rem;">AI智能生成配置</h4>
+
                         <div class="form-group">
-                            <label class="form-label">JSON格式动作配置</label>
-                            <div id="createActionsEditor" class="monaco-editor-container"></div>
-                            <textarea id="createActions" name="actions" style="display: none;"></textarea>
+                            <label class="form-label">智能生成提示词</label>
+                            <textarea id="createPrompt" class="form-control" rows="6" placeholder="描述需要生成的动作，例如：
+工具1：查询防火墙健康状态
+工具2：封禁一个IP地址
+工具3：解封一个IP地址"></textarea>
+                            <button type="button" id="generateActions" class="btn btn-secondary btn-block" style="margin-top: 0.5rem;">
+                                🤖 自动生成动作定义
+                            </button>
+                        </div>
+
+                        <!-- 分隔线 -->
+                        <div style="border-top: 1px solid var(--bg-300); margin: 1.5rem 0;"></div>
+
+                        <!-- AI生成备注 (新增) -->
+                        <div class="form-group">
+                            <label class="form-label">AI生成备注（可选）</label>
+                            <textarea name="ai_notes" class="form-control" rows="7" placeholder="对AI生成结果的格式、风格等要求，或提供样例数据（可选）
+
+示例：
+- 返回的IP地址字段必须包含地理位置信息
+- 响应格式参考：{&quot;status&quot;: &quot;success&quot;, &quot;data&quot;: {...}}"></textarea>
                         </div>
                     </div>
                 </div>
@@ -413,6 +429,7 @@
                         name: formData.get('name'),
                         display_name: formData.get('display_name'),
                         description: formData.get('description'),
+                        ai_notes: formData.get('ai_notes') || '',
                         template: {actions}
                     })
                 });

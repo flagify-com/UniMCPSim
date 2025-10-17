@@ -340,10 +340,69 @@ body {
     max-height: 90vh;
 }
 
+/* Extra Large Modal for Create App */
+.modal-content.extra-large {
+    max-width: 1200px;
+    width: 98%;
+    height: 750px;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-content.extra-large .modal-title {
+    flex-shrink: 0;
+    margin-bottom: 1.5rem;
+}
+
+.modal-content.extra-large form {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
 .modal-split {
     display: grid;
     grid-template-columns: 400px 1fr;
     gap: 2rem;
+}
+
+/* New Split Layout for Create Modal (55:45 ratio) */
+.modal-split-new {
+    display: grid;
+    grid-template-columns: 55fr 45fr;
+    gap: 2rem;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.modal-left,
+.modal-right {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+/* Scrollbar Styles for Modal Columns */
+.modal-left::-webkit-scrollbar,
+.modal-right::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-left::-webkit-scrollbar-thumb,
+.modal-right::-webkit-scrollbar-thumb {
+    background-color: var(--bg-300);
+    border-radius: 3px;
+}
+
+/* Compact Form Group (no label, uses placeholder) */
+.form-group-compact {
+    margin-bottom: 0.75rem;
 }
 
 /* Monaco Editor Container */
@@ -355,9 +414,24 @@ body {
     overflow: hidden;
 }
 
-.monaco-editor-container:focus-within {
+.monaco-editor-container-large {
+    border: 1px solid var(--bg-300);
+    border-radius: 6px;
+    height: 450px;
+    width: 100%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.monaco-editor-container:focus-within,
+.monaco-editor-container-large:focus-within {
     border-color: var(--primary-100);
     box-shadow: 0 0 0 2px rgba(89, 165, 245, 0.2);
+}
+
+/* Button Block Style */
+.btn-block {
+    width: 100%;
 }
 
 /* 保留原来的json-editor样式作为后备 */

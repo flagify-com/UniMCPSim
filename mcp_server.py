@@ -105,7 +105,8 @@ class SimulatorEngine:
             'category': app.category,
             'name': app.name,
             'display_name': app.display_name,
-            'description': app.description or ''
+            'description': app.description or '',
+            'ai_notes': app.ai_notes or ''
         }
 
         # 生成响应（传递应用完整信息和动作定义）

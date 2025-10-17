@@ -64,11 +64,17 @@ class AIResponseGenerator:
             prompt_template = self.db_manager.get_prompt_template('response_simulation')
             if prompt_template:
                 # 准备变量替换
+                ai_notes = app_info.get('ai_notes', '')
+                # 如果有 ai_notes，保留原文；如果没有，使用默认提示
+                if not ai_notes or ai_notes.strip() == '':
+                    ai_notes = '无特殊要求'
+
                 variables = {
                     'app_category': app_info.get('category', ''),
                     'app_name': app_info.get('name', ''),
                     'app_display_name': app_info.get('display_name', ''),
                     'app_description': app_info.get('description', ''),
+                    'ai_notes': ai_notes,
                     'action': action,
                     'parameters': json.dumps(parameters, ensure_ascii=False, indent=2),
                     'action_definition': json.dumps(action_def, ensure_ascii=False, indent=2) if action_def else 'null'
@@ -79,6 +85,10 @@ class AIResponseGenerator:
             else:
                 # 如果没有找到模板，使用原来的硬编码提示词（包含应用完整信息）
                 action_def_str = json.dumps(action_def, ensure_ascii=False, indent=2) if action_def else 'null'
+                ai_notes = app_info.get('ai_notes', '')
+                if not ai_notes or ai_notes.strip() == '':
+                    ai_notes = '无特殊要求'
+
                 prompt = f"""你是{app_info.get('display_name', app_name)}系统的模拟器。
 
 # 应用信息
@@ -86,6 +96,9 @@ class AIResponseGenerator:
 - 名称: {app_info.get('name', 'Unknown')}
 - 显示名称: {app_info.get('display_name', app_name)}
 - 描述: {app_info.get('description', '无描述')}
+
+# 用户特殊要求
+{ai_notes}
 
 # 调用信息
 用户调用了 {action} 操作，参数如下：
@@ -101,6 +114,7 @@ class AIResponseGenerator:
 3. 反映操作的成功或失败状态
 4. 考虑应用描述中的业务场景
 5. 考虑动作定义中的描述和参数要求
+6. 如果用户提供了特殊要求，严格遵守这些要求
 
 直接返回JSON，不要任何其他说明文字。"""
 
