@@ -3,11 +3,23 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.6.0"
-__version_info__ = (2, 6, 0)
+__version__ = "2.7.0"
+__version_info__ = (2, 7, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.7.0": {
+        "date": "2025-10-17",
+        "features": [
+            "完整的回归测试套件(前端/后端/MCP)",
+            "自动化测试框架支持持续集成",
+            "前端测试: 登录/密码/应用/Token管理",
+            "后端测试: AI动作生成/响应模拟",
+            "MCP测试: StreamableHTTP模式完整验证",
+            "精简高效的测试策略(单应用验证系统功能)",
+            "详细的测试文档和故障排查指南"
+        ]
+    },
     "2.6.0": {
         "date": "2025-10-17",
         "features": [
