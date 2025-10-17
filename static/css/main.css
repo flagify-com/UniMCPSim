@@ -334,6 +334,11 @@ body {
     overflow-y: auto;
 }
 
+.modal-content.medium {
+    max-width: 1000px;
+    width: 95%;
+}
+
 .modal-content.large {
     max-width: 1200px;
     width: 98%;
