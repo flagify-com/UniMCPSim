@@ -66,7 +66,41 @@ class PromptTemplate(Base):
 ```
 
 #### action_generation 模板
-用于生成动作定义（创建新应用时使用）
+用于生成动作定义（创建新应用时使用，v2.5.0+支持default字段）
+
+**核心功能**: 根据用户自然语言描述自动生成MCP工具的动作定义(JSON格式)
+
+**动作设计原则**(v2.5.0+):
+1. name: 使用snake_case命名，准确反映动作功能
+2. display_name: 简洁的中文名称
+3. description: 详细说明功能和用途
+4. parameters: 根据需求决定，可有可无
+5. key: 参数名要有实际指导意义
+6. description: 参数说明要具体，包括数据格式、必要性等
+7. **default: 可选参数可设置默认值**(如duration_minutes默认60，page_size默认10等)
+
+**参数定义格式**(v2.5.0+):
+```json
+{
+  "key": "duration_minutes",
+  "type": "Number",
+  "required": false,
+  "default": 60,
+  "description": "封禁时长（分钟），0表示永久封禁"
+}
+```
+
+**default字段说明**:
+- 用途: 为可选参数(required=false)提供默认值
+- 好处: 简化用户调用，无需每次都指定常用参数
+- 示例: duration_minutes=60, page_size=10, timeout=30, max_retries=3等
+
+#### action_generation 的变量
+- `{prompt}`: 用户对动作的自然语言描述
+- `{category}`: 应用分类
+- `{name}`: 应用内部名称
+- `{display_name}`: 应用显示名称
+- `{description}`: 应用详细描述
 
 ### 3. 模板变量
 

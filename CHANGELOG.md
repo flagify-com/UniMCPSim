@@ -27,6 +27,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - AI action generation button now disables during API call to prevent double-clicks
 - App creation success message now includes permission binding reminder
 - Database initialization script updated with current schema (including ai_notes field)
+- Optimized action_generation prompt template with default field support
+  - Added principle #7 for default values in optional parameters
+  - Parameter definitions now support "default" field (e.g., duration_minutes=60, page_size=10)
+  - Improved AI-generated action quality with better parameter defaults
 
 ### Fixed
 - Issue where deleted apps would be re-imported on server restart

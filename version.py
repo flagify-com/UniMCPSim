@@ -16,7 +16,8 @@ VERSION_HISTORY = {
             "智能数据库初始化(尊重用户删除)",
             "Token权限手动绑定提醒",
             "AI动作生成按钮防重复点击",
-            "优化response_simulation提示词模板"
+            "优化response_simulation提示词模板(新增ai_notes字段)",
+            "优化action_generation提示词模板(支持default字段)"
         ]
     },
     "2.4.3": {

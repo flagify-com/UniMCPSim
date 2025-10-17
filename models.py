@@ -362,6 +362,7 @@ class DatabaseManager:
 4. parameters: 根据动作实际需求决定，可以有参数，也可以没有参数
 5. key: 参数名要有实际指导意义，便于理解和调用
 6. description: 参数说明要具体，包括数据格式、必要性等信息
+7. default: 可选参数可以设置默认值，方便用户使用（如：duration_minutes默认60，page_size默认10等）
 
 请生成符合以下格式的JSON数组，包含用户描述的所有动作：
 
@@ -375,7 +376,8 @@ class DatabaseManager:
         "key": "参数的英文键名，使用snake_case，要能清楚表达参数含义",
         "type": "参数类型：String|Number|Boolean|Object|Array",
         "required": true,
-        "description": "参数的详细说明，包括格式要求、取值范围等"
+        "description": "参数的详细说明，包括格式要求、取值范围等",
+        "default": "可选字段，仅在required=false时使用，提供合理的默认值"
       }}
     ]
   }}
@@ -404,7 +406,8 @@ class DatabaseManager:
         "key": "duration_minutes",
         "type": "Number",
         "required": false,
-        "description": "封禁时长（分钟），0表示永久封禁，默认60分钟"
+        "default": 60,
+        "description": "封禁时长（分钟），0表示永久封禁"
       }},
       {{
         "key": "reason",
