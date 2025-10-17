@@ -19,13 +19,33 @@ class AIResponseGenerator:
     """AI响应生成器"""
 
     def __init__(self):
-        api_key = os.getenv('OPENAI_API_KEY')
-        api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
-        model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
-        # 读取enable_thinking配置,默认为False(禁用)
-        enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
-        # 读取stream配置,默认为False(某些模型如qwq-32b强制要求stream=True)
-        use_stream = os.getenv('OPENAI_STREAM', 'false').lower() == 'true'
+        # 初始化数据库管理器
+        self.db_manager = DatabaseManager()
+
+        # 加载配置（数据库优先，环境变量兜底）
+        self._load_config()
+
+    def _load_config(self):
+        """加载LLM配置（数据库优先，环境变量兜底）"""
+        # 尝试从数据库读取配置
+        db_config = self.db_manager.get_llm_config()
+
+        if db_config and db_config.api_key:
+            # 使用数据库配置
+            api_key = db_config.api_key
+            api_base = db_config.api_base_url or 'https://api.openai.com/v1'
+            model = db_config.model_name or 'gpt-4o-mini'
+            enable_thinking = db_config.enable_thinking
+            use_stream = db_config.enable_stream
+        else:
+            # 回退到环境变量配置
+            api_key = os.getenv('OPENAI_API_KEY')
+            api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
+            model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+            # 读取enable_thinking配置,默认为False(禁用)
+            enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
+            # 读取stream配置,默认为False(某些模型如qwq-32b强制要求stream=True)
+            use_stream = os.getenv('OPENAI_STREAM', 'false').lower() == 'true'
 
         if api_key:
             self.client = OpenAI(api_key=api_key, base_url=api_base)
@@ -39,8 +59,9 @@ class AIResponseGenerator:
             self.enable_thinking = False
             self.use_stream = False
 
-        # 初始化数据库管理器
-        self.db_manager = DatabaseManager()
+    def reload_config(self):
+        """重新加载配置（用于配置更新后立即生效）"""
+        self._load_config()
 
     def generate_response(self, app_info: Dict[str, Any], action: str, parameters: Dict[str, Any], action_def: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """生成模拟响应

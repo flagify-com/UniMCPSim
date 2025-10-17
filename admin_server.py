@@ -93,6 +93,12 @@ def change_password_page():
     """修改密码页面"""
     return render_template('change_password.html', username=session.get('username'), active_page='change_password')
 
+@app.route('/admin/llm-config')
+@login_required
+def llm_config_page():
+    """大模型配置页面"""
+    return render_template('llm_config.html', username=session.get('username'), active_page='llm_config')
+
 @app.route('/admin/logout')
 def logout():
     """退出登录"""
@@ -798,6 +804,177 @@ def api_change_password():
 
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+# ===== LLM配置管理API =====
+
+@app.route('/admin/api/llm-config', methods=['GET'])
+@login_required
+def api_get_llm_config():
+    """获取大模型配置"""
+    try:
+        config = db_manager.get_llm_config()
+        if config:
+            # API Key脱敏显示
+            masked_key = None
+            if config.api_key:
+                if len(config.api_key) > 10:
+                    masked_key = config.api_key[:6] + '***' + config.api_key[-4:]
+                else:
+                    masked_key = config.api_key[:3] + '***'
+
+            return jsonify({
+                'api_key': masked_key,
+                'api_base_url': config.api_base_url,
+                'model_name': config.model_name,
+                'enable_thinking': config.enable_thinking,
+                'enable_stream': config.enable_stream,
+                'has_config': bool(config.api_key)
+            })
+        else:
+            # 返回默认值
+            return jsonify({
+                'api_key': None,
+                'api_base_url': 'https://api.openai.com/v1',
+                'model_name': 'gpt-4o-mini',
+                'enable_thinking': False,
+                'enable_stream': False,
+                'has_config': False
+            })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/llm-config', methods=['POST'])
+@login_required
+def api_save_llm_config():
+    """保存大模型配置"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+
+        api_key = data.get('api_key')
+        api_base_url = data.get('api_base_url', 'https://api.openai.com/v1')
+        model_name = data.get('model_name', 'gpt-4o-mini')
+        enable_thinking = data.get('enable_thinking', False)
+        enable_stream = data.get('enable_stream', False)
+
+        # 如果api_key为空字符串或者是脱敏的值（包含***），不更新
+        if api_key and '***' in api_key:
+            api_key = None
+
+        # 保存配置
+        config = db_manager.save_llm_config(
+            api_key=api_key,
+            api_base_url=api_base_url,
+            model_name=model_name,
+            enable_thinking=enable_thinking,
+            enable_stream=enable_stream
+        )
+
+        # 重新加载AI生成器的配置
+        from ai_generator import ai_generator
+        ai_generator.reload_config()
+
+        return jsonify({
+            'success': True,
+            'message': '配置保存成功'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/llm-config/test', methods=['POST'])
+@login_required
+def api_test_llm_config():
+    """测试大模型配置"""
+    try:
+        data = request.get_json()
+
+        # 获取测试配置（可以是临时配置或当前数据库配置）
+        api_key = data.get('api_key')
+        api_base_url = data.get('api_base_url', 'https://api.openai.com/v1')
+        model_name = data.get('model_name', 'gpt-4o-mini')
+        enable_thinking = data.get('enable_thinking', False)
+        enable_stream = data.get('enable_stream', False)
+
+        # 如果api_key包含***，从数据库读取真实的key
+        if api_key and '***' in api_key:
+            config = db_manager.get_llm_config()
+            if config and config.api_key:
+                api_key = config.api_key
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': '未配置API Key'
+                }), 400
+
+        if not api_key:
+            return jsonify({
+                'success': False,
+                'error': 'API Key不能为空'
+            }), 400
+
+        # 使用OpenAI客户端测试连接
+        import openai
+        import time
+
+        client = openai.OpenAI(
+            api_key=api_key,
+            base_url=api_base_url
+        )
+
+        start_time = time.time()
+
+        # 发送测试请求
+        test_message = "你是谁？"
+
+        if enable_stream:
+            # Stream模式
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "user", "content": test_message}
+                ],
+                max_tokens=50,
+                stream=True,
+                extra_body={"enable_thinking": enable_thinking}
+            )
+
+            # 收集stream响应
+            result = ""
+            for chunk in response:
+                if chunk.choices[0].delta.content:
+                    result += chunk.choices[0].delta.content
+        else:
+            # 非Stream模式
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "user", "content": test_message}
+                ],
+                max_tokens=50,
+                extra_body={"enable_thinking": enable_thinking}
+            )
+            result = response.choices[0].message.content
+
+        duration = time.time() - start_time
+
+        return jsonify({
+            'success': True,
+            'message': '连接成功',
+            'response': result,
+            'duration': f'{duration:.2f}秒',
+            'model': model_name
+        })
+
+    except Exception as e:
+        error_msg = str(e)
+        return jsonify({
+            'success': False,
+            'error': f'连接失败: {error_msg}'
+        }), 400
 
 
 def run_admin_server():

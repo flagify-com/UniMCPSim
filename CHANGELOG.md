@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2025-10-17
+
+### Added
+- Web-based LLM configuration management interface
+  - New "大模型配置" menu item in admin navigation
+  - User-friendly form for configuring OpenAI-compatible APIs
+  - API Key masking for security (displays as `sk-xxx***xxx`)
+  - Test connection feature with "你是谁?" test message
+  - Real-time response display with duration metrics
+- Database-first configuration strategy
+  - New `llm_config` table for persistent storage
+  - Priority: Database config > `.env` environment variables
+  - Backward compatible with existing `.env` configuration
+- LLM configuration API endpoints
+  - `GET /admin/api/llm-config` - Retrieve current configuration
+  - `POST /admin/api/llm-config` - Save/update configuration
+  - `POST /admin/api/llm-config/test` - Test connection with live request
+- Automatic configuration reload
+  - AI generator reloads config after saving
+  - No server restart required for changes to take effect
+
+### Changed
+- `AIResponseGenerator` now loads config from database first, falls back to environment variables
+- Admin server now includes LLM config page route (`/admin/llm-config`)
+- Database schema expanded with `LLMConfig` model
+
+### Fixed
+- Configuration changes now apply immediately without restart
+- API Key security improved with masking in UI and API responses
+
 ## [2.5.0] - 2025-01-17
 
 ### Added
@@ -134,7 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite database with SQLAlchemy ORM
 - Comprehensive test coverage
 
-[Unreleased]: https://github.com/yourusername/UniMCPSim/compare/v2.5.0...HEAD
+[Unreleased]: https://github.com/yourusername/UniMCPSim/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/yourusername/UniMCPSim/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/yourusername/UniMCPSim/compare/v2.4.3...v2.5.0
 [2.4.3]: https://github.com/yourusername/UniMCPSim/compare/v2.4.0...v2.4.3
 [2.4.0]: https://github.com/yourusername/UniMCPSim/compare/v2.3.0...v2.4.0

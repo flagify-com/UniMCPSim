@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大模型配置 - UniMCPSim</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+{% include '_navigation.html' %}
+
+    <div class="container mt-3">
+        <div class="card">
+            <div class="card-header">
+                <span>大模型配置（OpenAI API兼容）</span>
+            </div>
+
+            <div style="padding: 1.5rem;">
+                <div class="alert alert-info" style="margin-bottom: 1.5rem; padding: 1rem; background-color: var(--bg-200); border-left: 4px solid var(--primary);">
+                    <strong>提示：</strong> 此配置支持所有兼容 OpenAI API 格式的大模型服务，包括：
+                    <ul style="margin: 0.5rem 0 0 1.5rem;">
+                        <li>OpenAI (GPT-4, GPT-4o, GPT-4o-mini等)</li>
+                        <li>阿里云通义千问 (qwen系列)</li>
+                        <li>DeepSeek (deepseek-chat, deepseek-coder等)</li>
+                        <li>其他兼容OpenAI格式的服务</li>
+                    </ul>
+                </div>
+
+                <form id="llmConfigForm">
+                    <!-- API Base URL -->
+                    <div class="form-group">
+                        <label class="form-label required">API Base URL</label>
+                        <input type="text" id="apiBaseUrl" class="form-control"
+                               placeholder="https://api.openai.com/v1" required>
+                        <small class="form-text">API服务地址（例如：https://api.openai.com/v1 或 https://dashscope.aliyuncs.com/compatible-mode/v1）</small>
+                    </div>
+
+                    <!-- API Key -->
+                    <div class="form-group">
+                        <label class="form-label required">API Key</label>
+                        <input type="password" id="apiKey" class="form-control"
+                               placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx" required>
+                        <small class="form-text">您的API密钥（保存后将脱敏显示）</small>
+                    </div>
+
+                    <!-- Model Name -->
+                    <div class="form-group">
+                        <label class="form-label required">Model Name</label>
+                        <input type="text" id="modelName" class="form-control"
+                               placeholder="gpt-4o-mini" required>
+                        <small class="form-text">模型名称（例如：gpt-4o-mini, qwen-max, deepseek-chat等）</small>
+                    </div>
+
+                    <!-- Enable Thinking -->
+                    <div class="form-group">
+                        <label class="form-label">Enable Thinking</label>
+                        <select id="enableThinking" class="form-control">
+                            <option value="false">否（默认）</option>
+                            <option value="true">是</option>
+                        </select>
+                        <small class="form-text">是否启用思考模式（某些模型支持，可能影响JSON输出格式，建议保持默认值"否"）</small>
+                    </div>
+
+                    <!-- Enable Stream -->
+                    <div class="form-group">
+                        <label class="form-label">Enable Stream</label>
+                        <select id="enableStream" class="form-control">
+                            <option value="false">否（默认）</option>
+                            <option value="true">是</option>
+                        </select>
+                        <small class="form-text">是否启用流式输出（某些模型如qwq-32b强制要求启用）</small>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="form-group" style="display: flex; gap: 1rem; justify-content: flex-end;">
+                        <button type="button" class="btn btn-secondary" onclick="testConnection()">测试连接</button>
+                        <button type="submit" class="btn btn-primary">保存配置</button>
+                    </div>
+                </form>
+
+                <!-- 测试结果显示区域 -->
+                <div id="testResult" style="margin-top: 1.5rem; display: none;">
+                    <div class="card">
+                        <div class="card-header">
+                            <span>测试结果</span>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <div id="testResultContent"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+{% include '_footer.html' %}
+
+    <script>
+        let originalApiKey = null; // 存储原始的脱敏API Key
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadConfig();
+        });
+
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const response = await fetch('/admin/api/llm-config');
+                const config = await response.json();
+
+                if (config.api_key) {
+                    originalApiKey = config.api_key; // 保存脱敏后的key
+                    document.getElementById('apiKey').value = config.api_key;
+                    document.getElementById('apiKey').placeholder = '已配置（保持原值请勿修改）';
+                }
+
+                document.getElementById('apiBaseUrl').value = config.api_base_url || 'https://api.openai.com/v1';
+                document.getElementById('modelName').value = config.model_name || 'gpt-4o-mini';
+                document.getElementById('enableThinking').value = config.enable_thinking ? 'true' : 'false';
+                document.getElementById('enableStream').value = config.enable_stream ? 'true' : 'false';
+            } catch (error) {
+                console.error('Failed to load config:', error);
+                alert('加载配置失败');
+            }
+        }
+
+        // 提交表单
+        document.getElementById('llmConfigForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const apiKey = document.getElementById('apiKey').value;
+            const apiBaseUrl = document.getElementById('apiBaseUrl').value;
+            const modelName = document.getElementById('modelName').value;
+            const enableThinking = document.getElementById('enableThinking').value === 'true';
+            const enableStream = document.getElementById('enableStream').value === 'true';
+
+            // 如果API Key没有修改（仍然是脱敏值），发送原始值
+            const finalApiKey = apiKey === originalApiKey ? originalApiKey : apiKey;
+
+            const data = {
+                api_key: finalApiKey,
+                api_base_url: apiBaseUrl,
+                model_name: modelName,
+                enable_thinking: enableThinking,
+                enable_stream: enableStream
+            };
+
+            try {
+                const response = await fetch('/admin/api/llm-config', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert(result.message || '配置保存成功');
+                    loadConfig(); // 重新加载配置
+                } else {
+                    alert('保存失败: ' + (result.error || '未知错误'));
+                }
+            } catch (error) {
+                console.error('Failed to save config:', error);
+                alert('保存失败');
+            }
+        });
+
+        // 测试连接
+        async function testConnection() {
+            const apiKey = document.getElementById('apiKey').value;
+            const apiBaseUrl = document.getElementById('apiBaseUrl').value;
+            const modelName = document.getElementById('modelName').value;
+            const enableThinking = document.getElementById('enableThinking').value === 'true';
+            const enableStream = document.getElementById('enableStream').value === 'true';
+
+            if (!apiKey || !apiBaseUrl || !modelName) {
+                alert('请填写完整的配置信息');
+                return;
+            }
+
+            // 显示加载状态
+            const testResult = document.getElementById('testResult');
+            const testResultContent = document.getElementById('testResultContent');
+            testResult.style.display = 'block';
+            testResultContent.innerHTML = '<div style="text-align: center; padding: 1rem;"><span style="color: var(--primary);">测试中，请稍候...</span></div>';
+
+            const data = {
+                api_key: apiKey,
+                api_base_url: apiBaseUrl,
+                model_name: modelName,
+                enable_thinking: enableThinking,
+                enable_stream: enableStream
+            };
+
+            try {
+                const response = await fetch('/admin/api/llm-config/test', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    testResultContent.innerHTML = `
+                        <div style="color: var(--success);">
+                            <strong>✓ ${result.message}</strong>
+                            <div style="margin-top: 0.5rem; padding: 0.8rem; background-color: var(--bg-200); border-radius: 4px;">
+                                <div style="margin-bottom: 0.5rem;"><strong>模型：</strong>${result.model}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>响应时间：</strong>${result.duration}</div>
+                                <div style="margin-bottom: 0.3rem;"><strong>模型响应：</strong></div>
+                                <div style="padding: 0.5rem; background-color: var(--bg-100); border-left: 3px solid var(--primary); white-space: pre-wrap; word-break: break-word;">${result.response}</div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    testResultContent.innerHTML = `
+                        <div style="color: var(--danger);">
+                            <strong>✗ 测试失败</strong>
+                            <div style="margin-top: 0.5rem; padding: 0.8rem; background-color: var(--bg-200); border-radius: 4px; color: var(--text-100);">
+                                ${result.error || '未知错误'}
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Test failed:', error);
+                testResultContent.innerHTML = `
+                    <div style="color: var(--danger);">
+                        <strong>✗ 测试失败</strong>
+                        <div style="margin-top: 0.5rem; padding: 0.8rem; background-color: var(--bg-200); border-radius: 4px; color: var(--text-100);">
+                            ${error.message || '网络错误'}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

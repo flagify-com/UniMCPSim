@@ -3,11 +3,23 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.5.0"
-__version_info__ = (2, 5, 0)
+__version__ = "2.6.0"
+__version_info__ = (2, 6, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.6.0": {
+        "date": "2025-10-17",
+        "features": [
+            "Web界面大模型配置管理",
+            "数据库优先配置策略(数据库>环境变量)",
+            "LLM配置测试连接功能",
+            "API Key脱敏显示保护安全",
+            "支持OpenAI兼容API(通义千问/DeepSeek等)",
+            "配置即时生效无需重启",
+            "新增LLMConfig数据表"
+        ]
+    },
     "2.5.0": {
         "date": "2025-01-17",
         "features": [
