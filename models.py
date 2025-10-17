@@ -105,6 +105,20 @@ class PromptTemplate(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
+class LLMConfig(Base):
+    """大模型配置（单例表）"""
+    __tablename__ = 'llm_config'
+
+    id = Column(Integer, primary_key=True)
+    api_key = Column(String(500), nullable=True)  # API密钥（加密存储）
+    api_base_url = Column(String(500), default='https://api.openai.com/v1')
+    model_name = Column(String(100), default='gpt-4o-mini')
+    enable_thinking = Column(Boolean, default=False)  # 是否启用thinking模式
+    enable_stream = Column(Boolean, default=False)  # 是否启用stream模式
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
 # Pydantic模型
 class ActionParameter(BaseModel):
     """动作参数定义"""
@@ -332,6 +346,46 @@ class DatabaseManager:
     def reset_admin_password(self, new_password: str = 'admin123') -> bool:
         """重置管理员密码"""
         return self.change_user_password('admin', new_password)
+
+    def get_llm_config(self) -> Optional[LLMConfig]:
+        """获取大模型配置（单例）"""
+        session = self.get_session()
+        try:
+            config = session.query(LLMConfig).first()
+            return config
+        finally:
+            session.close()
+
+    def save_llm_config(self, api_key: Optional[str], api_base_url: str,
+                       model_name: str, enable_thinking: bool, enable_stream: bool) -> LLMConfig:
+        """保存或更新大模型配置"""
+        session = self.get_session()
+        try:
+            config = session.query(LLMConfig).first()
+            if config:
+                # 更新现有配置
+                if api_key is not None:
+                    config.api_key = api_key
+                config.api_base_url = api_base_url
+                config.model_name = model_name
+                config.enable_thinking = enable_thinking
+                config.enable_stream = enable_stream
+                config.updated_at = datetime.now(timezone.utc)
+            else:
+                # 创建新配置
+                config = LLMConfig(
+                    api_key=api_key,
+                    api_base_url=api_base_url,
+                    model_name=model_name,
+                    enable_thinking=enable_thinking,
+                    enable_stream=enable_stream
+                )
+                session.add(config)
+
+            session.commit()
+            return config
+        finally:
+            session.close()
 
     def create_default_prompts(self):
         """创建默认提示词模板"""

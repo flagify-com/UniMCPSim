@@ -8,6 +8,7 @@ UniMCPSim是一个通用的MCP（Model Context Protocol）模拟器，可以动�
 - **多产品支持**：预置9个常用产品模拟器，涵盖安全、通讯、网络、工单等领域
 - **AI增强响应**：兼容OpenAI API接口（支持OpenAI、Qwen、Deepseek、Claude、Gemini等），生成真实的模拟响应数据
 - **智能动作生成**：基于数据库提示词模板，AI自动生成API动作定义
+- **Web界面配置** ⭐ NEW v2.6.0：通过可视化界面配置大模型参数，无需手动编辑配置文件
 - **增强日志系统**：详细记录所有MCP调用、AI调用、认证失败等，支持DEBUG模式
 - **Web管理界面**：提供完整的Web后台管理系统
 - **Token权限管理**：支持Token认证和细粒度权限控制
@@ -162,12 +163,28 @@ unset HTTP_PROXY
 
 ### 2. 环境变量配置
 
-**重要！** 创建`.env`文件并配置必要的环境变量（必需步骤）：
+**推荐方式：** 通过Web界面配置大模型（v2.6.0+）
+
+从 v2.6.0 开始，您可以通过 Web 管理界面配置大模型参数，无需手动编辑 `.env` 文件：
+
+1. 启动服务后访问：http://localhost:9091/admin/
+2. 登录（默认：admin / admin123）
+3. 点击"大模型配置"菜单
+4. 填写配置并点击"测试连接"验证
+5. 保存配置即可使用
+
+**传统方式：** 通过 `.env` 文件配置（可选，向后兼容）
+
+如果您更喜欢使用配置文件，也可以创建 `.env` 文件：
 
 ```bash
 # 创建.env文件
 cat > .env << 'EOF'
-# AI API配置（必需，兼容OpenAI API接口）
+# ===== AI大模型配置 =====
+# 注意：v2.6.0+ 推荐通过Web界面配置，此处配置为备用方式
+# 配置优先级：数据库配置（Web界面）> .env文件
+
+# AI API配置（可选 - 推荐通过Web界面配置）
 # 支持OpenAI、Qwen、Deepseek、Claude、Gemini等所有兼容OpenAI API的服务
 OPENAI_API_KEY=your_api_key_here
 OPENAI_MODEL=gpt-4o-mini
@@ -175,22 +192,27 @@ OPENAI_API_BASE_URL=https://api.openai.com/v1
 OPENAI_ENABLE_THINKING=false  # 禁用思考模式,防止影响JSON输出(默认false)
 OPENAI_STREAM=false  # 控制stream模式,某些模型如qwq-32b强制要求true(默认false)
 
-# 服务端口配置（可选）
+# ===== 服务端口配置 =====
 MCP_SERVER_PORT=9090
 ADMIN_SERVER_PORT=9091
 
-# 日志配置（可选）
+# ===== 日志配置 =====
 DEBUG=false              # 启用DEBUG模式记录详细调用信息
 LOG_LEVEL=INFO          # 日志级别: DEBUG, INFO, WARNING, ERROR
 LOG_DIR=logs            # 日志文件存储目录
 EOF
 ```
 
+**配置优先级说明（v2.6.0+）：**
+- 🥇 **数据库配置**（通过Web界面设置）- 最高优先级
+- 🥈 **`.env` 文件**（传统方式）- 备用方案
+
 ⚠️ **注意**：
-- 请将`your_api_key_here`替换为您的真实API密钥
+- v2.6.0+ 推荐使用Web界面配置大模型（更安全、更方便）
+- 如果数据库中已有配置，将优先使用数据库配置
+- `.env` 文件作为备用方案，确保向后兼容
 - 支持任何兼容OpenAI API接口的服务（OpenAI、Qwen、Deepseek、Claude、Gemini等）
-- 从v2.0开始，系统使用AI智能生成动作定义，必须配置AI API
-- 如果没有配置,新建应用功能将无法正常工作
+- 如果没有配置AI API，新建应用的AI辅助生成功能将无法使用
 - 启用`DEBUG=true`可记录完整的调用详情，包括完整token、headers、AI prompt等（仅用于排查问题）
 
 **OPENAI_ENABLE_THINKING配置说明**：

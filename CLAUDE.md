@@ -33,6 +33,7 @@ UniMCPSim/
 │   │   ├── apps.html           # App management
 │   │   ├── tokens.html         # Token management
 │   │   ├── prompts.html        # Prompt template management
+│   │   ├── llm_config.html     # LLM configuration (NEW in v2.6.0)
 │   │   ├── logs.html           # Audit logs
 │   │   └── change_password.html # Password change
 │   └── static/            # CSS, JS, Monaco editor
@@ -66,7 +67,7 @@ UniMCPSim/
 ### Database
 - **Type**: SQLite (with SQLAlchemy ORM)
 - **Location**: `data/unimcp.db` (auto-created)
-- **Models**: Users, Tokens, Applications, AppPermissions, PromptTemplates, AuditLogs
+- **Models**: Users, Tokens, Applications, AppPermissions, PromptTemplates, AuditLogs, **LLMConfig**
 
 ### Authentication
 - **Admin Login**: Session-based with password hashing
@@ -83,7 +84,9 @@ UniMCPSim/
 ### AI Response Generation
 - **Provider**: OpenAI API (GPT-4o-mini by default)
 - **Purpose**: Generate realistic mock responses and action definitions
-- **Configuration**: Via `.env` file (REQUIRED)
+- **Configuration**: Database-first strategy (Database > `.env`)
+  - **Web UI**: Configure via "大模型配置" menu in admin panel
+  - **Fallback**: `.env` file for backward compatibility
 - **Thinking Mode**: Disabled by default to prevent thinking process from interfering with JSON output format
 
 ## Common Commands
@@ -173,6 +176,7 @@ python reset_admin_password.py
 - `/admin/apps` - Application management
 - `/admin/tokens` - Token management
 - `/admin/prompts` - Prompt template management
+- `/admin/llm-config` - **LLM configuration management (NEW in v2.6.0)**
 - `/admin/logs` - Audit logs
 - `/admin/change-password` - Password change
 - `/admin/api/*` - REST API for admin operations
@@ -244,6 +248,19 @@ python reset_admin_password.py
 - Templates support variables: `{app_name}`, `{action_name}`, `{parameters}`, etc.
 - Users can view and edit template content (metadata is read-only)
 - Templates are stored in database and loaded on startup
+
+### LLM Configuration Management (NEW in v2.6.0)
+- **Database-First Strategy**: Configuration stored in database takes priority over `.env`
+- **Web Interface**: Configure via `/admin/llm-config` page
+  - API Base URL (supports OpenAI-compatible APIs)
+  - API Key (masked display for security: `sk-xxx***xxx`)
+  - Model Name (e.g., gpt-4o-mini, qwen-max, deepseek-chat)
+  - Enable Thinking (default: false)
+  - Enable Stream (default: false, required for some models like qwq-32b)
+- **Test Connection**: Built-in test feature sends "你是谁?" to verify configuration
+- **Instant Reload**: Changes take effect immediately without server restart
+- **Backward Compatible**: Falls back to `.env` if no database configuration exists
+- **Security**: API keys are masked in UI and API responses
 
 ### Session Management
 - MCP sessions use `mcp-session-id` header
@@ -332,19 +349,32 @@ unset HTTPS_PROXY HTTP_PROXY http_proxy https_proxy
 
 ## Environment Variables
 
-Required `.env` configuration:
+### Configuration Priority (v2.6.0+)
+**Database Configuration > `.env` File**
+
+You can now configure LLM settings via:
+1. **Web UI** (Recommended): Visit `/admin/llm-config` to manage settings visually
+2. **Environment Variables** (Fallback): Use `.env` file for backward compatibility
+
+### `.env` Configuration (Optional)
 ```
-# OpenAI Configuration (REQUIRED for AI features)
+# OpenAI Configuration (Optional - can be configured via Web UI)
 OPENAI_API_KEY=sk-xxxxx
 OPENAI_MODEL=gpt-4o-mini
 OPENAI_API_BASE_URL=https://api.openai.com/v1
 OPENAI_ENABLE_THINKING=false  # 禁用思考模式,防止影响JSON输出(默认false)
 OPENAI_STREAM=false  # 控制stream模式,某些模型如qwq-32b强制要求true(默认false)
 
+# Server Configuration
+MCP_SERVER_PORT=9090
+ADMIN_SERVER_PORT=9091
+
 # Optional configurations
 DEBUG=false
 LOG_LEVEL=INFO
 ```
+
+**Note**: If LLM configuration exists in database, it will override `.env` settings.
 
 **OPENAI_ENABLE_THINKING说明**:
 - 默认值: `false` (禁用thinking模式)
@@ -365,7 +395,7 @@ LOG_LEVEL=INFO
 
 ## Project Status
 
-Current Version: **v2.5.0**
+Current Version: **v2.6.0**
 - ✅ Core MCP simulator fully functional
 - ✅ Pre-configured product simulators
 - ✅ AI-enhanced response generation
@@ -373,6 +403,8 @@ Current Version: **v2.5.0**
 - ✅ Token permission management system
 - ✅ MCP configuration generator
 - ✅ Prompt template management
+- ✅ **LLM configuration via Web UI (NEW)**
+- ✅ **Database-first configuration strategy (NEW)**
 - ✅ Cherry Studio/Claude Desktop/Cline integration tested
 - ✅ Comprehensive test coverage
 
