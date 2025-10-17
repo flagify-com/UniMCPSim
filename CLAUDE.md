@@ -223,6 +223,25 @@ python reset_admin_password.py
 - When creating new apps, AI can auto-generate action definitions
 - Uses database templates for consistent formatting
 - Requires OpenAI API configuration in `.env`
+- **Button disabled during API call** to prevent double-clicks
+- **Toast notifications** replace browser alerts for better UX
+
+### App Name Validation (New Feature)
+- **URL-Safe Characters Only**: Category and name fields accept only alphanumeric, underscore, and hyphen characters
+- **Frontend & Backend Validation**: Both layers enforce the `^[a-zA-Z0-9_-]+$` regex pattern (2-50 characters)
+- **Why**: Ensures clean URL paths like `/mcp/Security/VirusTotal?token=xxx`
+- **User Feedback**: Clear error messages for invalid input
+
+### Database Initialization Logic
+- **One-Time Initialization**: Checks if any applications exist (count > 0)
+- **Respects User Deletions**: Skips initialization if apps found, preventing re-import of deleted apps
+- **Fresh Install Support**: Auto-initializes 10 default apps on first run
+- **ai_notes Field**: Included in all initialized applications
+
+### Token Permission Workflow
+- **Manual Permission Binding**: New apps are NOT automatically authorized to existing tokens
+- **User-Guided Process**: Success message prompts users to visit Token management page
+- **Why**: Explicit permission control prevents unintended access
 
 ### Prompt Template Management
 - System provides default templates for action generation and response simulation
@@ -350,16 +369,20 @@ LOG_LEVEL=INFO
 
 ## Project Status
 
-Current Version: **v2.1.0**
+Current Version: **v2.5.0**
 - ✅ Core MCP simulator fully functional
-- ✅ 9 pre-configured product simulators
-- ✅ AI-enhanced response generation
+- ✅ 10 pre-configured product simulators (with ai_notes support)
+- ✅ AI-enhanced response generation with thinking mode control
 - ✅ Enhanced Web admin interface with modern UI
 - ✅ Token permission management with visual modal interface
 - ✅ App details viewer with complete action information
 - ✅ One-click MCP configuration generator
 - ✅ Prompt template management system
 - ✅ Unified navigation and footer components
+- ✅ Toast notification system (replacing browser alerts)
+- ✅ URL-safe app name validation (frontend & backend)
+- ✅ Smart database initialization (respects user deletions)
+- ✅ Explicit token permission workflow
 - ✅ Cherry Studio/Claude Desktop/Cline integration tested
 - ✅ Comprehensive test coverage
 
