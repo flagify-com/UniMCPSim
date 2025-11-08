@@ -3,11 +3,22 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.8.0"
-__version_info__ = (2, 8, 0)
+__version__ = "2.8.1"
+__version_info__ = (2, 8, 1)
 
 # Version history
 VERSION_HISTORY = {
+    "2.8.1": {
+        "date": "2025-11-08",
+        "features": [
+            "清理过时的数据库迁移脚本",
+            "移除 migrate_prompt_templates.py (v2.4.0迁移)",
+            "移除 update_action_generation_template.py (v2.5.0迁移)",
+            "移除 verify_action_generation_consistency.py (v2.5.0验证)",
+            "精简 README.md，移除过时的升级指南",
+            "提升代码库可维护性"
+        ]
+    },
     "2.8.0": {
         "date": "2025-11-08",
         "features": [
