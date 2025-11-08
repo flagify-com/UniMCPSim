@@ -51,17 +51,20 @@ UniMCPSim/
     ├── simple_test.py       # 核心功能测试
     └── test_e2e.py         # 端到端测试
 ├── docs/                    # 文档目录
-│   ├── technical-architecture.svg  # 技术架构图 (SVG格式)
-│   └── technical-architecture.png  # 技术架构图 (PNG格式)
+│   └── images/              # 图片资源
+│       ├── diagrams/        # 架构图
+│       │   ├── technical-architecture.svg  # 技术架构图 (SVG格式)
+│       │   └── technical-architecture.png  # 技术架构图 (PNG格式)
+│       └── screenshots/     # 功能截图
 ```
 
 ## 🏗️ 系统架构
 
 UniMCPSim采用分层架构设计，清晰划分各组件职责，确保系统的可扩展性和可维护性。
 
-![技术架构图](docs/technical-architecture.png)
+![技术架构图](docs/images/diagrams/technical-architecture.png)
 
-*技术架构图也提供 [SVG格式](docs/technical-architecture.svg) 供高清查看*
+*技术架构图也提供 [SVG格式](docs/images/diagrams/technical-architecture.svg) 供高清查看*
 
 ### 架构层次
 
@@ -463,7 +466,7 @@ UniMCPSim 完美支持 Cherry Studio 等 MCP 客户端，以下是详细的集�
 
 #### 1. 在 Cherry Studio 中创建 MCP 服务器
 
-![创建MCP服务器](docs/create-mcp-sever-in-cherry-studio.jpg)
+![创建MCP服务器](docs/images/screenshots/create-mcp-sever-in-cherry-studio.jpg)
 
 在 Cherry Studio 中：
 1. 打开设置页面
@@ -484,7 +487,7 @@ UniMCPSim 完美支持 Cherry Studio 等 MCP 客户端，以下是详细的集�
 
 #### 3. 查看可用工具列表
 
-![MCP工具列表](docs/mcp-server-tool-list-in-Cherry-Studio.jpg)
+![MCP工具列表](docs/images/screenshots/mcp-server-tool-list-in-Cherry-Studio.jpg)
 
 配置成功后，Cherry Studio 会自动识别 UniMCPSim 提供的所有工具：
 - ✅ 企业微信消息发送
@@ -495,7 +498,7 @@ UniMCPSim 完美支持 Cherry Studio 等 MCP 客户端，以下是详细的集�
 
 #### 4. 在对话中使用 MCP 工具
 
-![使用MCP工具](docs/use-mcp-server-in-Cherry-Studio.jpg)
+![使用MCP工具](docs/images/screenshots/use-mcp-server-in-Cherry-Studio.jpg)
 
 在 Cherry Studio 的对话界面中：
 1. 自然语言描述需求
@@ -555,10 +558,10 @@ UniMCPSim 完美支持 Cherry Studio 等 MCP 客户端，以下是详细的集�
 
 以下是在管理后台创建新应用的截图示例：
 
-![创建安恒扫描器应用](docs/crate-app-anheng-scanner.jpg)
+![创建安恒扫描器应用](docs/images/screenshots/crate-app-anheng-scanner.jpg)
 *创建安恒网络安全扫描器应用*
 
-![创建微步威胁情报应用](docs/create-app-threatbook.jpg)
+![创建微步威胁情报应用](docs/images/screenshots/create-app-threatbook.jpg)
 *创建微步在线威胁情报应用*
 
 通过Web界面可以轻松：
