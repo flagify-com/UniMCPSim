@@ -308,6 +308,138 @@ def delete_app(app_id):
     finally:
         session_db.close()
 
+@app.route('/admin/api/apps/export', methods=['GET'])
+@login_required
+def export_apps():
+    """导出应用配置"""
+    session_db = db_manager.get_session()
+    try:
+        # 获取可选的ids参数（逗号分隔）
+        ids_param = request.args.get('ids', '')
+
+        if ids_param:
+            # 导出指定应用
+            app_ids = [int(id.strip()) for id in ids_param.split(',') if id.strip().isdigit()]
+            apps = session_db.query(Application).filter(Application.id.in_(app_ids)).all()
+        else:
+            # 导出所有应用
+            apps = session_db.query(Application).all()
+
+        # 构建导出数据
+        export_data = {
+            'version': '1.0',
+            'export_time': datetime.now(timezone.utc).isoformat(),
+            'count': len(apps),
+            'applications': []
+        }
+
+        for app in apps:
+            export_data['applications'].append({
+                'category': app.category,
+                'name': app.name,
+                'display_name': app.display_name,
+                'description': app.description or '',
+                'ai_notes': app.ai_notes or '',
+                'template': app.template or {},
+                'enabled': app.enabled
+            })
+
+        return jsonify(export_data)
+    finally:
+        session_db.close()
+
+@app.route('/admin/api/apps/import', methods=['POST'])
+@admin_required
+def import_apps():
+    """导入应用配置"""
+    data = request.json
+    session_db = db_manager.get_session()
+
+    try:
+        # 验证数据格式
+        if not data or 'applications' not in data:
+            return jsonify({'error': '无效的导入数据格式'}), 400
+
+        applications = data.get('applications', [])
+        if not isinstance(applications, list):
+            return jsonify({'error': 'applications字段必须是数组'}), 400
+
+        results = {
+            'total': len(applications),
+            'created': 0,
+            'updated': 0,
+            'failed': 0,
+            'errors': []
+        }
+
+        for idx, app_data in enumerate(applications):
+            try:
+                # 验证必填字段
+                required_fields = ['category', 'name', 'display_name']
+                missing_fields = [f for f in required_fields if not app_data.get(f)]
+                if missing_fields:
+                    raise ValueError(f'缺少必填字段: {", ".join(missing_fields)}')
+
+                # 验证字段格式
+                valid, error = validate_app_name(app_data['category'], '类别')
+                if not valid:
+                    raise ValueError(error)
+
+                valid, error = validate_app_name(app_data['name'], '名称')
+                if not valid:
+                    raise ValueError(error)
+
+                # 检查是否已存在
+                existing = session_db.query(Application).filter_by(
+                    category=app_data['category'],
+                    name=app_data['name']
+                ).first()
+
+                if existing:
+                    # 覆盖现有应用
+                    existing.display_name = app_data['display_name']
+                    existing.description = app_data.get('description', '')
+                    existing.ai_notes = app_data.get('ai_notes', '')
+                    existing.template = app_data.get('template', {})
+                    existing.enabled = app_data.get('enabled', True)
+                    existing.updated_at = datetime.now(timezone.utc)
+                    results['updated'] += 1
+                else:
+                    # 创建新应用
+                    new_app = Application(
+                        category=app_data['category'],
+                        name=app_data['name'],
+                        display_name=app_data['display_name'],
+                        description=app_data.get('description', ''),
+                        ai_notes=app_data.get('ai_notes', ''),
+                        template=app_data.get('template', {}),
+                        enabled=app_data.get('enabled', True)
+                    )
+                    session_db.add(new_app)
+                    results['created'] += 1
+
+            except Exception as e:
+                results['failed'] += 1
+                results['errors'].append({
+                    'index': idx + 1,
+                    'app': f"{app_data.get('category', '?')}/{app_data.get('name', '?')}",
+                    'error': str(e)
+                })
+
+        # 提交所有成功的修改
+        session_db.commit()
+
+        return jsonify({
+            'success': True,
+            'results': results
+        })
+
+    except Exception as e:
+        session_db.rollback()
+        return jsonify({'error': f'导入失败: {str(e)}'}), 500
+    finally:
+        session_db.close()
+
 @app.route('/admin/api/tokens', methods=['GET'])
 @login_required
 def get_tokens():

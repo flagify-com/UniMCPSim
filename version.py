@@ -3,11 +3,23 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.7.0"
-__version_info__ = (2, 7, 0)
+__version__ = "2.8.0"
+__version_info__ = (2, 8, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.8.0": {
+        "date": "2025-11-08",
+        "features": [
+            "应用配置导入导出功能",
+            "支持导出全部应用或选择性导出",
+            "导入前预览(新建/覆盖应用列表)",
+            "自动识别同名应用并直接覆盖",
+            "JSON格式验证和友好错误提示",
+            "导出文件自动生成时间戳文件名",
+            "导入后提醒用户手动设置Token权限"
+        ]
+    },
     "2.7.0": {
         "date": "2025-10-17",
         "features": [

@@ -15,7 +15,11 @@
         <div class="card card-action-bar">
             <div class="d-flex justify-between align-center">
                 <h2 class="card-header">应用列表</h2>
-                <button onclick="showCreateModal()" class="btn btn-primary btn-sm">创建新应用</button>
+                <div class="d-flex gap-2">
+                    <button onclick="showExportModal()" class="btn btn-secondary btn-sm">📤 导出</button>
+                    <button onclick="showImportModal()" class="btn btn-secondary btn-sm">📥 导入</button>
+                    <button onclick="showCreateModal()" class="btn btn-primary btn-sm">创建新应用</button>
+                </div>
             </div>
         </div>
 
@@ -229,6 +233,70 @@
         </div>
     </div>
 
+    <!-- 导出模态框 -->
+    <div id="exportModal" class="modal">
+        <div class="modal-content medium">
+            <h3 class="modal-title">导出应用配置</h3>
+            <div class="alert alert-info" style="margin-bottom: 1rem;">
+                选择要导出的应用，或直接点击"导出全部"导出所有应用配置。
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span style="font-weight: 600;">已选择 <span id="exportSelectedCount">0</span> 个应用</span>
+                    <div>
+                        <button onclick="selectAllExport()" class="btn btn-sm btn-secondary">全选</button>
+                        <button onclick="deselectAllExport()" class="btn btn-sm btn-secondary">取消全选</button>
+                    </div>
+                </div>
+                <div id="exportAppsList" style="max-height: 300px; overflow-y: auto; border: 1px solid var(--bg-300); border-radius: 4px; padding: 0.5rem;">
+                    <!-- 动态加载 -->
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <button onclick="exportSelected()" id="exportSelectedBtn" class="btn btn-primary" disabled>导出选中</button>
+                <button onclick="exportAll()" class="btn btn-secondary">导出全部</button>
+                <button onclick="hideExportModal()" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入模态框 -->
+    <div id="importModal" class="modal">
+        <div class="modal-content medium">
+            <h3 class="modal-title">导入应用配置</h3>
+            <div class="alert alert-info" style="margin-bottom: 1rem;">
+                选择JSON格式的应用配置文件。导入时会自动覆盖同名应用（按类别+名称匹配）。
+            </div>
+            <div class="form-group">
+                <label class="form-label">选择文件</label>
+                <input type="file" id="importFile" accept=".json" class="form-control" onchange="handleFileSelect(event)">
+            </div>
+            <div class="d-flex gap-2">
+                <button onclick="startImport()" id="importBtn" class="btn btn-primary" disabled>开始导入</button>
+                <button onclick="hideImportModal()" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 导入预览模态框 -->
+    <div id="importPreviewModal" class="modal">
+        <div class="modal-content large">
+            <h3 class="modal-title">导入预览</h3>
+            <div class="alert alert-info" style="margin-bottom: 1rem;">
+                以下应用将被导入。同名应用将被覆盖，请仔细确认。
+            </div>
+
+            <div id="importPreviewContent">
+                <!-- 动态内容 -->
+            </div>
+
+            <div class="d-flex gap-2" style="margin-top: 1.5rem;">
+                <button onclick="confirmImport()" class="btn btn-primary">确认导入</button>
+                <button onclick="hideImportPreviewModal()" class="btn btn-secondary">取消</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         let editActionsEditor = null;
         let createActionsEditor = null;
@@ -344,13 +412,16 @@
             });
         });
 
+        // 全局应用数据缓存
+        let allApps = [];
+
         async function loadApps() {
             try {
                 const response = await fetch('/admin/api/apps');
-                const apps = await response.json();
+                allApps = await response.json();
                 const tbody = document.getElementById('appsList');
 
-                tbody.innerHTML = apps.map(app => `
+                tbody.innerHTML = allApps.map(app => `
                     <tr>
                         <td>${app.id}</td>
                         <td>${app.category}</td>
@@ -708,6 +779,248 @@
                 console.error('Failed to copy:', err);
                 alert('复制失败，请手动选择复制');
             });
+        }
+
+        // ========== 导出功能 ==========
+        function showExportModal() {
+            // 加载应用列表到导出模态框
+            const container = document.getElementById('exportAppsList');
+            container.innerHTML = allApps.map(app => `
+                <div style="padding: 0.5rem; border-bottom: 1px solid var(--bg-300);">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" class="export-checkbox" value="${app.id}" onchange="updateExportCount()" style="margin-right: 0.5rem;">
+                        <span><strong>${app.display_name}</strong> (${app.category}/${app.name})</span>
+                    </label>
+                </div>
+            `).join('');
+
+            updateExportCount();
+            document.getElementById('exportModal').classList.add('show');
+        }
+
+        function hideExportModal() {
+            document.getElementById('exportModal').classList.remove('show');
+        }
+
+        function updateExportCount() {
+            const checkboxes = document.querySelectorAll('.export-checkbox:checked');
+            const count = checkboxes.length;
+            document.getElementById('exportSelectedCount').textContent = count;
+            document.getElementById('exportSelectedBtn').disabled = count === 0;
+        }
+
+        function selectAllExport() {
+            document.querySelectorAll('.export-checkbox').forEach(cb => cb.checked = true);
+            updateExportCount();
+        }
+
+        function deselectAllExport() {
+            document.querySelectorAll('.export-checkbox').forEach(cb => cb.checked = false);
+            updateExportCount();
+        }
+
+        async function exportSelected() {
+            const checkboxes = document.querySelectorAll('.export-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+
+            if (ids.length === 0) {
+                showNotification('请至少选择一个应用', 'error');
+                return;
+            }
+
+            await performExport(ids);
+        }
+
+        async function exportAll() {
+            await performExport([]);
+        }
+
+        async function performExport(ids) {
+            try {
+                const url = ids.length > 0
+                    ? `/admin/api/apps/export?ids=${ids.join(',')}`
+                    : '/admin/api/apps/export';
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                // 生成文件名
+                const timestamp = new Date().toISOString().split('T')[0];
+                const filename = `unimcp-apps-${timestamp}.json`;
+
+                // 下载文件
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const downloadUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(downloadUrl);
+
+                showNotification(`成功导出 ${data.count} 个应用配置`, 'success');
+                hideExportModal();
+            } catch (error) {
+                console.error('Export failed:', error);
+                showNotification('导出失败：' + error.message, 'error');
+            }
+        }
+
+        // ========== 导入功能 ==========
+        let importFileData = null;
+
+        function showImportModal() {
+            document.getElementById('importFile').value = '';
+            document.getElementById('importBtn').disabled = true;
+            importFileData = null;
+            document.getElementById('importModal').classList.add('show');
+        }
+
+        function hideImportModal() {
+            document.getElementById('importModal').classList.remove('show');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                document.getElementById('importBtn').disabled = true;
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    importFileData = JSON.parse(e.target.result);
+
+                    // 验证数据格式
+                    if (!importFileData.applications || !Array.isArray(importFileData.applications)) {
+                        throw new Error('无效的文件格式：缺少applications字段');
+                    }
+
+                    document.getElementById('importBtn').disabled = false;
+                } catch (error) {
+                    showNotification('文件格式错误：' + error.message, 'error');
+                    document.getElementById('importBtn').disabled = true;
+                    importFileData = null;
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        async function startImport() {
+            if (!importFileData) {
+                showNotification('请先选择文件', 'error');
+                return;
+            }
+
+            hideImportModal();
+
+            // 检查同名应用
+            const toImport = importFileData.applications;
+            const newApps = [];
+            const updateApps = [];
+
+            for (const app of toImport) {
+                const existing = allApps.find(a =>
+                    a.category === app.category && a.name === app.name
+                );
+                if (existing) {
+                    updateApps.push({ ...app, existingId: existing.id });
+                } else {
+                    newApps.push(app);
+                }
+            }
+
+            // 显示预览
+            showImportPreview(newApps, updateApps);
+        }
+
+        function showImportPreview(newApps, updateApps) {
+            const content = document.getElementById('importPreviewContent');
+
+            let html = '';
+
+            if (newApps.length > 0) {
+                html += `
+                    <div class="card" style="background-color: var(--bg-200); margin-bottom: 1rem;">
+                        <h4 style="color: var(--primary-100); margin-bottom: 0.5rem;">✅ 新建应用 (${newApps.length}个)</h4>
+                        <ul style="margin: 0; padding-left: 1.5rem;">
+                            ${newApps.map(app => `
+                                <li><strong>${app.display_name}</strong> (${app.category}/${app.name})</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            if (updateApps.length > 0) {
+                html += `
+                    <div class="card" style="background-color: #fff3cd; margin-bottom: 1rem;">
+                        <h4 style="color: #856404; margin-bottom: 0.5rem;">⚠️ 覆盖现有应用 (${updateApps.length}个)</h4>
+                        <ul style="margin: 0; padding-left: 1.5rem; color: #856404;">
+                            ${updateApps.map(app => `
+                                <li><strong>${app.display_name}</strong> (${app.category}/${app.name}) - ID: ${app.existingId}</li>
+                            `).join('')}
+                        </ul>
+                    </div>
+                `;
+            }
+
+            html += `
+                <div class="alert alert-info">
+                    <strong>总计：</strong>${newApps.length + updateApps.length} 个应用
+                    （新建 ${newApps.length} 个，覆盖 ${updateApps.length} 个）
+                </div>
+            `;
+
+            content.innerHTML = html;
+            document.getElementById('importPreviewModal').classList.add('show');
+        }
+
+        function hideImportPreviewModal() {
+            document.getElementById('importPreviewModal').classList.remove('show');
+        }
+
+        async function confirmImport() {
+            try {
+                const response = await fetch('/admin/api/apps/import', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(importFileData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    hideImportPreviewModal();
+                    await loadApps();
+
+                    // 显示结果
+                    const stats = result.results;
+                    let message = `导入完成！\n\n`;
+                    message += `✅ 新建：${stats.created} 个\n`;
+                    message += `🔄 覆盖：${stats.updated} 个\n`;
+                    if (stats.failed > 0) {
+                        message += `❌ 失败：${stats.failed} 个\n\n`;
+                        message += `失败详情：\n`;
+                        stats.errors.forEach(err => {
+                            message += `- ${err.app}: ${err.error}\n`;
+                        });
+                    }
+
+                    if (stats.created > 0 || stats.updated > 0) {
+                        message += `\n提示：导入的应用需要在"令牌管理"页面手动绑定访问权限。`;
+                    }
+
+                    showNotification(message, stats.failed > 0 ? 'error' : 'success');
+                } else {
+                    showNotification('导入失败：' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Import failed:', error);
+                showNotification('导入失败：' + error.message, 'error');
+            }
         }
 
         loadApps();
