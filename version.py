@@ -3,11 +3,21 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.8.1"
-__version_info__ = (2, 8, 1)
+__version__ = "2.8.2"
+__version_info__ = (2, 8, 2)
 
 # Version history
 VERSION_HISTORY = {
+    "2.8.2": {
+        "date": "2025-11-08",
+        "features": [
+            "修复 README.md 中所有图片路径",
+            "更新项目结构说明反映实际目录布局",
+            "修正技术架构图路径 (docs/images/diagrams/)",
+            "修正功能截图路径 (docs/images/screenshots/)",
+            "确保文档中图片正确显示"
+        ]
+    },
     "2.8.1": {
         "date": "2025-11-08",
         "features": [
