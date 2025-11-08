@@ -403,6 +403,117 @@ curl -X POST "http://localhost:9090/Security/VirusTotal?token=demo-token-123" \
 }
 ```
 
+#### 2.5 导出应用配置 (v2.8.0)
+
+导出应用配置为JSON文件，支持导出全部应用或选择性导出指定应用。
+
+**端点**: `GET /admin/api/apps/export`
+
+**URL 参数**:
+- `ids` (可选): 逗号分隔的应用ID列表，如 `?ids=1,2,3`。不提供则导出全部应用。
+
+**请求示例**:
+```bash
+# 导出全部应用
+curl -H "Cookie: session=xxx" http://localhost:9091/admin/api/apps/export
+
+# 导出指定应用
+curl -H "Cookie: session=xxx" http://localhost:9091/admin/api/apps/export?ids=1,2,3
+```
+
+**响应**:
+```json
+{
+  "version": "1.0",
+  "export_time": "2025-11-08T13:01:28.776127+00:00",
+  "count": 2,
+  "applications": [
+    {
+      "category": "Security",
+      "name": "VirusTotal",
+      "display_name": "VirusTotal API",
+      "description": "在线病毒扫描和威胁情报平台",
+      "ai_notes": "响应包含检测结果、文件哈希、扫描引擎详情",
+      "template": {
+        "actions": [
+          {
+            "name": "scan_file",
+            "display_name": "扫描文件",
+            "description": "提交文件进行病毒扫描",
+            "parameters": [
+              {
+                "key": "file_url",
+                "type": "String",
+                "required": true,
+                "description": "文件URL地址"
+              }
+            ]
+          }
+        ]
+      },
+      "enabled": true
+    }
+  ]
+}
+```
+
+#### 2.6 导入应用配置 (v2.8.0)
+
+从JSON文件导入应用配置。自动识别同名应用（按category+name匹配）并直接覆盖。
+
+**端点**: `POST /admin/api/apps/import`
+
+**请求体**: 导出的JSON格式配置文件
+
+**请求示例**:
+```bash
+curl -X POST \
+  -H "Cookie: session=xxx" \
+  -H "Content-Type: application/json" \
+  -d @exported-apps.json \
+  http://localhost:9091/admin/api/apps/import
+```
+
+**响应**:
+```json
+{
+  "success": true,
+  "results": {
+    "total": 10,
+    "created": 3,
+    "updated": 7,
+    "failed": 0,
+    "errors": []
+  }
+}
+```
+
+**错误响应**:
+```json
+{
+  "success": true,
+  "results": {
+    "total": 5,
+    "created": 2,
+    "updated": 2,
+    "failed": 1,
+    "errors": [
+      {
+        "index": 3,
+        "app": "Security/InvalidApp",
+        "error": "名称只能包含字母、数字、下划线和连字符"
+      }
+    ]
+  }
+}
+```
+
+**注意事项**:
+- 导入操作需要管理员权限
+- 同名应用（category + name匹配）将被直接覆盖
+- 导入成功后需要在Token管理页面手动绑定访问权限
+- 支持完整的字段验证（category和name规则检查）
+
 ### 3. Token 管理
 
 #### 3.1 获取 Token 列表
