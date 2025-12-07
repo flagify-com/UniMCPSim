@@ -399,7 +399,8 @@ def handle_product_endpoint(product_path):
     if request.method == 'GET':
         # GET请求返回应用信息
         apps = db_manager.get_token_applications(token)
-        if app_obj not in apps:
+        app_ids = [app.id for app in apps]
+        if app_obj.id not in app_ids:
             mcp_logger.log_auth_failure(
                 reason="Access denied - token not authorized for this app",
                 token=token,
@@ -435,7 +436,8 @@ def handle_product_endpoint(product_path):
 
         # 验证Token权限（与GET请求保持一致的安全检查）
         apps = db_manager.get_token_applications(token)
-        if app_obj not in apps:
+        app_ids = [app.id for app in apps]
+        if app_obj.id not in app_ids:
             mcp_logger.log_auth_failure(
                 reason="Access denied - token not authorized for this app",
                 token=token,
