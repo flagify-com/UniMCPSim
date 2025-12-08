@@ -3,11 +3,23 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.8.2"
-__version_info__ = (2, 8, 2)
+__version__ = "2.9.0"
+__version_info__ = (2, 9, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.9.0": {
+        "date": "2025-12-08",
+        "features": [
+            "MCP Playground 功能",
+            "支持配置和测试任意 MCP Server",
+            "大模型对话交互，自动调用 MCP 工具",
+            "可编辑的系统提示词",
+            "左右分栏布局：配置区 + 对话区",
+            "实时显示工具调用过程和结果",
+            "MCP 客户端实现（支持 SSE 格式响应）"
+        ]
+    },
     "2.8.2": {
         "date": "2025-11-08",
         "features": [
