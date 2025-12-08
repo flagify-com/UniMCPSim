@@ -6,9 +6,10 @@ UniMCPSim是一个通用的MCP（Model Context Protocol）模拟器，可以动�
 
 - **通用MCP模拟器**：基于FastMCP框架，支持标准MCP协议
 - **多产品支持**：预置9个常用产品模拟器，涵盖安全、通讯、网络、工单等领域
+- **MCP Playground** ⭐ NEW v2.9.0：交互式MCP测试工具，通过大模型对话验证MCP Server是否正常工作
 - **AI增强响应**：兼容OpenAI API接口（支持OpenAI、Qwen、Deepseek、Claude、Gemini等），生成真实的模拟响应数据
 - **智能动作生成**：基于数据库提示词模板，AI自动生成API动作定义
-- **配置导入导出** ⭐ NEW v2.8.0：应用配置一键导入导出，支持批量迁移和备份
+- **配置导入导出** (v2.8.0)：应用配置一键导入导出，支持批量迁移和备份
 - **Web界面配置** (v2.6.0)：通过可视化界面配置大模型参数，无需手动编辑配置文件
 - **增强日志系统**：详细记录所有MCP调用、AI调用、认证失败等，支持DEBUG模式
 - **Web管理界面**：提供完整的Web后台管理系统
@@ -26,6 +27,8 @@ UniMCPSim/
 ├── models.py                # 数据库模型定义
 ├── auth_utils.py            # 认证工具
 ├── ai_generator.py          # AI响应生成器
+├── mcp_client.py            # MCP客户端（Playground用）
+├── playground_service.py    # Playground服务
 ├── logger_utils.py          # 增强日志系统
 ├── start_servers.py         # 服务启动脚本
 ├── data/                    # 数据目录
@@ -45,6 +48,7 @@ UniMCPSim/
 │   ├── apps.html            # 应用管理
 │   ├── tokens.html          # Token管理
 │   ├── prompts.html         # 提示词管理
+│   ├── playground.html      # MCP Playground
 │   ├── logs.html            # 审计日志
 │   └── change_password.html # 密码修改
 └── tests/                   # 测试文件
@@ -505,6 +509,50 @@ UniMCPSim 完美支持 Cherry Studio 等 MCP 客户端，以下是详细的集�
 2. AI自动选择合适的工具
 3. 执行具体操作
 4. 获取真实的模拟响应
+
+### MCP Playground 测试工具 ⭐ NEW v2.9.0
+
+UniMCPSim v2.9.0 新增 MCP Playground 功能，无需外部客户端即可直接在 Web 界面中测试 MCP Server。
+
+![MCP Playground](docs/images/screenshots/mcp-server-playground.png)
+
+#### 功能特点
+
+- **可视化配置**: 通过 JSON 编辑器配置任意 MCP Server
+- **实时连接测试**: 一键测试连接并查看可用工具列表
+- **AI 对话交互**: 通过自然语言与大模型对话，自动调用 MCP 工具
+- **工具调用可视化**: 实时显示工具调用过程和返回结果
+- **自定义系统提示词**: 可编辑系统提示词控制 AI 行为
+
+#### 使用方法
+
+1. 登录管理后台，点击导航栏的"MCP Playground"
+2. 在左侧配置区粘贴 MCP Server 配置（JSON 格式）
+3. 点击"测试连接"验证配置并获取工具列表
+4. 在右侧对话区输入指令，AI 将自动调用相应的 MCP 工具
+
+#### MCP 配置示例
+
+```json
+{
+  "mcpServers": {
+    "QAXFW": {
+      "name": "奇安信防火墙",
+      "type": "streamableHttp",
+      "description": "奇安信防火墙MCP服务",
+      "isActive": true,
+      "baseUrl": "http://127.0.0.1:9090/Firewall/QAXFW?token=YOUR_TOKEN_HERE"
+    }
+  }
+}
+```
+
+#### 适用场景
+
+- 🔧 快速验证新建的 MCP Server 是否正常工作
+- 🧪 测试 MCP 工具的参数和返回值
+- 📚 学习和了解 MCP 协议的工作方式
+- 🔍 调试 MCP 工具调用问题
 
 ## 🛠️ 管理后台使用指南
 
@@ -1093,7 +1141,16 @@ async def your_new_tool(param1: str, param2: int) -> str:
 
 ## 📝 更新日志
 
-### v2.8.0 (2025-11-08) ⭐ NEW
+### v2.9.0 (2025-12-08) ⭐ NEW
+- ✅ **MCP Playground 功能**：交互式 MCP 测试工具
+- ✅ 支持配置和测试任意 MCP Server（包括外部服务）
+- ✅ 大模型对话交互，自动调用 MCP 工具（Function Calling）
+- ✅ 可编辑的系统提示词
+- ✅ 左右分栏布局：配置区 + 对话区
+- ✅ 实时显示工具调用过程和结果
+- ✅ MCP 客户端实现（支持 SSE 格式响应）
+
+### v2.8.0 (2025-11-08)
 - ✅ 应用配置导入导出功能
 - ✅ 支持导出全部应用或选择性导出指定应用
 - ✅ 导入前预览Modal显示新建/覆盖应用列表
