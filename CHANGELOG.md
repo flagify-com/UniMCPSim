@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.9.0] - 2025-12-08
+
+### Added
+- MCP Playground feature for testing MCP Servers interactively
+  - New "Playground" menu item in admin navigation
+  - Left-right split layout (40% config / 60% chat)
+  - Editable system prompt with Monaco Editor
+  - MCP Server configuration editor (JSON format)
+  - Test connection button to verify MCP Server and list tools
+  - Real-time tool list display after successful connection
+- AI-powered chat interface with function calling
+  - Automatic tool invocation based on user requests
+  - Tool call and result display in conversation
+  - Conversation history management (clear/reset)
+- MCP Client implementation (`mcp_client.py`)
+  - Support for `initialize`, `tools/list`, `tools/call` methods
+  - SSE (Server-Sent Events) response parsing
+  - Error handling and timeout control
+- Playground Service (`playground_service.py`)
+  - Session management for multiple users
+  - Integration with existing LLM configuration
+  - Automatic tool execution loop (max 10 iterations)
+- New API endpoints
+  - `GET /admin/playground` - Playground page
+  - `POST /admin/api/playground/test` - Test MCP connection
+  - `POST /admin/api/playground/chat` - Send chat message
+  - `POST /admin/api/playground/clear` - Clear conversation
+  - `GET /admin/api/playground/history` - Get conversation history
+  - `GET /admin/api/playground/system-prompt` - Get default system prompt
+
+### Changed
+- Navigation bar updated to include Playground menu item
+- Admin server now imports and uses playground_service
+
 ## [2.6.0] - 2025-10-17
 
 ### Added

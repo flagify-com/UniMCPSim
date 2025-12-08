@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from models import db_manager, User, Token, Application, AppPermission, AuditLog, PromptTemplate
 from auth_utils import hash_password, verify_password, login_required, admin_required
 from version import get_version
+from playground_service import playground_service
 
 # Load environment variables from .env file
 load_dotenv()
@@ -98,6 +99,16 @@ def change_password_page():
 def llm_config_page():
     """大模型配置页面"""
     return render_template('llm_config.html', username=session.get('username'), active_page='llm_config')
+
+@app.route('/admin/playground')
+@login_required
+def playground_page():
+    """Playground 页面"""
+    mcp_port = os.getenv('MCP_SERVER_PORT', '9090')
+    return render_template('playground.html',
+                         username=session.get('username'),
+                         active_page='playground',
+                         mcp_port=mcp_port)
 
 @app.route('/admin/logout')
 def logout():
@@ -1107,6 +1118,96 @@ def api_test_llm_config():
             'success': False,
             'error': f'连接失败: {error_msg}'
         }), 400
+
+
+# ===== Playground API =====
+
+@app.route('/admin/api/playground/test', methods=['POST'])
+@login_required
+def api_playground_test():
+    """测试 MCP Server 连接"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+
+        config = data.get('config', {})
+        if not config:
+            return jsonify({'error': 'MCP 配置不能为空'}), 400
+
+        # 使用会话 ID 区分不同用户
+        session_id = session.get('user_id', 'default')
+
+        result = playground_service.test_mcp_servers(str(session_id), config)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/playground/chat', methods=['POST'])
+@login_required
+def api_playground_chat():
+    """发送对话消息"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+
+        message = data.get('message', '').strip()
+        if not message:
+            return jsonify({'error': '消息不能为空'}), 400
+
+        system_prompt = data.get('system_prompt')
+        session_id = session.get('user_id', 'default')
+
+        result = playground_service.chat(str(session_id), message, system_prompt)
+        return jsonify(result)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/playground/clear', methods=['POST'])
+@login_required
+def api_playground_clear():
+    """清除对话历史"""
+    try:
+        session_id = session.get('user_id', 'default')
+        playground_service.clear_session(str(session_id))
+        return jsonify({'success': True, 'message': '对话已清除'})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/playground/history', methods=['GET'])
+@login_required
+def api_playground_history():
+    """获取对话历史"""
+    try:
+        session_id = session.get('user_id', 'default')
+        history = playground_service.get_conversation_history(str(session_id))
+        tools = playground_service.get_tools(str(session_id))
+        return jsonify({
+            'history': history,
+            'tools': tools
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/playground/system-prompt', methods=['GET'])
+@login_required
+def api_playground_system_prompt():
+    """获取默认系统提示词"""
+    try:
+        prompt = playground_service.get_default_system_prompt()
+        return jsonify({'prompt': prompt})
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 def run_admin_server():
