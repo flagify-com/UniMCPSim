@@ -57,7 +57,7 @@ docker build -t unimcpsim:oem .
 ### 指定版本标签
 
 ```bash
-docker build -t unimcpsim:2.8.2-oem .
+docker build -t unimcpsim:2.9.0 .
 ```
 
 ### 构建参数
@@ -144,6 +144,18 @@ LOG_LEVEL=INFO
 
 ## 数据持久化
 
+### 首次启动自动初始化
+
+容器首次启动时会自动完成以下初始化：
+
+1. **创建数据库**：SQLAlchemy 自动创建 `/app/data/unimcp.db` 及所有表结构
+2. **初始化默认数据**：
+   - 创建默认管理员账号 (admin / admin123)
+   - 导入 9 个预置产品模拟器
+   - 生成 Demo Token
+
+无需手动执行任何初始化脚本。
+
 ### 数据卷说明
 
 | 路径 | 说明 | 是否必须 |
@@ -186,20 +198,23 @@ docker restart unimcpsim
 
 ```bash
 # 构建镜像
-docker build -t unimcpsim:oem .
+docker build -t unimcpsim:latest .
 
-# 导出为 tar.gz 文件
-docker save unimcpsim:oem | gzip > unimcpsim-oem.tar.gz
+# 方式一：导出为 tar 文件
+docker save -o unimcpsim-2.9.0.tar unimcpsim:latest
 
-# 文件大小约 200-300MB
-ls -lh unimcpsim-oem.tar.gz
+# 方式二：导出并压缩（推荐，体积更小）
+docker save unimcpsim:latest | gzip > unimcpsim-2.9.0.tar.gz
+
+# 查看文件大小（约 200-300MB）
+ls -lh unimcpsim-2.9.0.tar*
 ```
 
 ### 2. 传输到目标服务器
 
 ```bash
 # 使用 scp
-scp unimcpsim-oem.tar.gz user@server:/path/to/
+scp unimcpsim-2.9.0.tar.gz user@server:/path/to/
 
 # 或使用其他方式（U盘、内网传输等）
 ```
@@ -207,8 +222,11 @@ scp unimcpsim-oem.tar.gz user@server:/path/to/
 ### 3. 在目标服务器导入并运行
 
 ```bash
-# 导入镜像
-docker load < unimcpsim-oem.tar.gz
+# 导入镜像（tar 文件）
+docker load -i unimcpsim-2.9.0.tar
+
+# 导入镜像（tar.gz 压缩文件）
+gunzip -c unimcpsim-2.9.0.tar.gz | docker load
 
 # 验证镜像
 docker images | grep unimcpsim
@@ -221,7 +239,38 @@ docker run -d \
   -p 9091:9091 \
   -v /data/unimcpsim/data:/app/data \
   -v /data/unimcpsim/logs:/app/logs \
-  unimcpsim:oem
+  unimcpsim:latest
+```
+
+### 4. 使用 Docker Compose 运行（推荐）
+
+将 `docker-compose.yml` 文件也一并传输到目标服务器：
+
+```bash
+# 创建工作目录
+mkdir -p /data/unimcpsim && cd /data/unimcpsim
+
+# 创建 docker-compose.yml
+cat > docker-compose.yml << 'EOF'
+version: '3.8'
+
+services:
+  unimcpsim:
+    image: unimcpsim:latest
+    container_name: unimcpsim
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+      - "9091:9091"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    environment:
+      - TZ=Asia/Shanghai
+EOF
+
+# 启动服务
+docker-compose up -d
 ```
 
 ## 常用命令
