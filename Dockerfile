@@ -5,7 +5,7 @@ FROM python:3.11-slim
 
 # Set labels
 LABEL maintainer="UniMCPSim"
-LABEL version="2.9.0"
+LABEL version="2.10.0"
 LABEL description="Universal MCP Simulator - OEM Edition"
 
 # Set environment variables

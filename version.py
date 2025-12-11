@@ -3,11 +3,21 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.9.0"
-__version_info__ = (2, 9, 0)
+__version__ = "2.10.0"
+__version_info__ = (2, 10, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.10.0": {
+        "date": "2025-12-11",
+        "features": [
+            "OEM白标部署支持（移除厂商品牌标识）",
+            "创建应用页面添加默认示例值（HoneyGuide-SOAR）",
+            "智能生成提示词预填工具定义模板",
+            "Docker容器化部署支持（含国内镜像加速）",
+            "修复Token验证和SQLAlchemy对象比较问题"
+        ]
+    },
     "2.9.0": {
         "date": "2025-12-08",
         "features": [
