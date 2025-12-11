@@ -2,9 +2,7 @@ version: '3.8'
 
 services:
   unimcpsim:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: unimcpsim:latest
     container_name: unimcpsim
     restart: unless-stopped
     ports:

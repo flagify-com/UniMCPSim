@@ -5,12 +5,15 @@ FROM python:3.11-slim
 
 # Set labels
 LABEL maintainer="UniMCPSim"
-LABEL version="2.8.2"
+LABEL version="2.10.0"
 LABEL description="Universal MCP Simulator - OEM Edition"
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONIOENCODING=utf-8
+ENV LANG=C.UTF-8
+ENV LC_ALL=C.UTF-8
 ENV TZ=Asia/Shanghai
 
 # Set working directory

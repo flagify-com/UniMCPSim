@@ -61,19 +61,19 @@
 
                         <div class="form-group">
                             <label class="form-label">类别</label>
-                            <input type="text" name="category" class="form-control" required placeholder="如：Email、Firewall、CloudStorage">
+                            <input type="text" name="category" class="form-control" required value="SOAR">
                         </div>
                         <div class="form-group">
                             <label class="form-label">名称</label>
-                            <input type="text" name="name" class="form-control" required placeholder="如：Gmail、FortiGate、AWSStorage">
+                            <input type="text" name="name" class="form-control" required value="HoneyGuide-SOAR">
                         </div>
                         <div class="form-group">
                             <label class="form-label">显示名称</label>
-                            <input type="text" name="display_name" class="form-control" required placeholder="如：Gmail邮箱、飞塔防火墙、AWS对象存储">
+                            <input type="text" name="display_name" class="form-control" required value="雾帜智能HoneyGuide SOAR">
                         </div>
                         <div class="form-group">
                             <label class="form-label">描述</label>
-                            <textarea name="description" class="form-control" rows="3" placeholder="应用的简要说明，如：提供企业邮件收发、通讯录管理等功能"></textarea>
+                            <textarea name="description" class="form-control" rows="3">雾帜智能编排自动化产品HoneyGuide，支持安全剧本playbook的查询和使用。</textarea>
                         </div>
                     </div>
 
@@ -83,10 +83,20 @@
 
                         <div class="form-group">
                             <label class="form-label">智能生成提示词</label>
-                            <textarea id="createPrompt" class="form-control" rows="10" placeholder="描述需要生成的动作，例如：
-工具1：封禁一个给定的IP地址
-工具2：发送邮件email，必填参数：title、subject、text_body和mailto
-工具3：查询系统健康状态，返回CPU、内存、磁盘使用率"></textarea>
+                            <textarea id="createPrompt" class="form-control" rows="10">工具1：查询可用剧本列表
+返回：剧本ID、剧本名称
+
+工具2：查询指定剧本的详细信息
+输入参数：剧本ID
+返回：剧本ID、剧本名称、参数列表（每个参数包含：参数名、类型、是否必填、默认值）
+
+工具3：执行剧本
+输入参数：剧本ID、剧本参数（JSON对象）
+返回：剧本执行任务ID
+
+工具4：获取剧本执行结果
+输入参数：剧本执行任务ID
+返回：执行状态、执行结果、开始时间、结束时间</textarea>
                         </div>
 
                         <button type="button" id="generateActions" class="btn btn-secondary btn-block" style="margin-bottom: 1.5rem;" disabled>
@@ -448,14 +458,78 @@
             }
         }
 
+        // 默认值常量
+        const DEFAULT_CATEGORY = 'SOAR';
+        const DEFAULT_NAME = 'HoneyGuide-SOAR';
+        const DEFAULT_DISPLAY_NAME = '雾帜智能HoneyGuide SOAR';
+        const DEFAULT_DESCRIPTION = '雾帜智能编排自动化产品HoneyGuide，支持安全剧本playbook的查询和使用。';
+        const DEFAULT_PROMPT = `工具1：查询可用剧本列表
+返回：剧本ID、剧本名称
+
+工具2：查询指定剧本的详细信息
+输入参数：剧本ID
+返回：剧本ID、剧本名称、参数列表（每个参数包含：参数名、类型、是否必填、默认值）
+
+工具3：执行剧本
+输入参数：剧本ID、剧本参数（JSON对象）
+返回：剧本执行任务ID
+
+工具4：获取剧本执行结果
+输入参数：剧本执行任务ID
+返回：执行状态、执行结果、开始时间、结束时间`;
+        const DEFAULT_ACTIONS = `[
+  {
+    "name": "example_action",
+    "display_name": "示例动作",
+    "description": "这是一个示例动作",
+    "parameters": [
+      {
+        "key": "input",
+        "type": "String",
+        "required": true,
+        "description": "输入参数"
+      }
+    ]
+  }
+]`;
+
+        // 重置创建表单为默认值
+        function resetCreateForm() {
+            document.querySelector('#createAppForm input[name="category"]').value = DEFAULT_CATEGORY;
+            document.querySelector('#createAppForm input[name="name"]').value = DEFAULT_NAME;
+            document.querySelector('#createAppForm input[name="display_name"]').value = DEFAULT_DISPLAY_NAME;
+            document.querySelector('#createAppForm textarea[name="description"]').value = DEFAULT_DESCRIPTION;
+            document.getElementById('createPrompt').value = DEFAULT_PROMPT;
+            document.querySelector('#createAppForm textarea[name="ai_notes"]').value = '';
+
+            if (createActionsEditor) {
+                createActionsEditor.setValue(DEFAULT_ACTIONS);
+            }
+
+            // 由于有默认提示词，保持AI生成按钮为启用状态
+            const generateBtn = document.getElementById('generateActions');
+            generateBtn.disabled = false;
+            generateBtn.classList.remove('btn-secondary');
+            generateBtn.classList.add('btn-primary');
+        }
+
         function showCreateModal() {
             document.getElementById('createModal').classList.add('show');
 
-            // 初始化AI生成按钮状态
+            // 检查提示词是否有内容，如果有则启用AI生成按钮
+            const promptTextarea = document.getElementById('createPrompt');
             const generateBtn = document.getElementById('generateActions');
-            generateBtn.disabled = true;
-            generateBtn.classList.remove('btn-primary');
-            generateBtn.classList.add('btn-secondary');
+            const hasContent = promptTextarea.value.trim().length > 0;
+
+            if (hasContent) {
+                generateBtn.disabled = false;
+                generateBtn.classList.remove('btn-secondary');
+                generateBtn.classList.add('btn-primary');
+            } else {
+                generateBtn.disabled = true;
+                generateBtn.classList.remove('btn-primary');
+                generateBtn.classList.add('btn-secondary');
+            }
         }
 
         function hideModal() {
@@ -608,19 +682,8 @@
                     loadApps();
                     // 显示后端返回的提示消息
                     showNotification(result.message || '应用创建成功', 'success');
-                    // 重置表单
-                    document.getElementById('createAppForm').reset();
-                    document.getElementById('createPrompt').value = '';
-
-                    // 重置AI生成按钮状态
-                    const generateBtn = document.getElementById('generateActions');
-                    generateBtn.disabled = true;
-                    generateBtn.classList.remove('btn-primary');
-                    generateBtn.classList.add('btn-secondary');
-
-                    if (createActionsEditor) {
-                        createActionsEditor.setValue('[\n  {\n    "name": "example_action",\n    "display_name": "示例动作",\n    "description": "这是一个示例动作",\n    "parameters": [\n      {\n        "key": "input",\n        "type": "String",\n        "required": true,\n        "description": "输入参数"\n      }\n    ]\n  }\n]');
-                    }
+                    // 重置表单为默认值
+                    resetCreateForm();
                 } else {
                     const errorData = await response.json();
                     showNotification('创建失败：' + (errorData.error || '未知错误'), 'error');
