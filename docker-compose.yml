@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  unimcpsim:
+    image: unimcpsim:latest
+    container_name: unimcpsim
+    restart: unless-stopped
+    ports:
+      - "9090:9090"  # MCP Server
+      - "9091:9091"  # Admin Server
+    volumes:
+      - ./data:/app/data          # 数据持久化
+      - ./logs:/app/logs          # 日志持久化
+      - ./.env:/app/.env:ro       # 环境配置（只读）
+    environment:
+      - TZ=Asia/Shanghai
+      - MCP_SERVER_PORT=9090
+      - ADMIN_SERVER_PORT=9091
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9090/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - unimcpsim-network
+
+networks:
+  unimcpsim-network:
+    driver: bridge
