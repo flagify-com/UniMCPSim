@@ -3,11 +3,23 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.10.1"
-__version_info__ = (2, 10, 1)
+__version__ = "2.11.0"
+__version_info__ = (2, 11, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.11.0": {
+        "date": "2025-12-12",
+        "features": [
+            "多LLM配置管理（预注册多个大模型配置）",
+            "配置卡片列表展示，一键切换活跃配置",
+            "配置热切换（跨进程自动同步，无需重启）",
+            "增强JSON解析（支持多JSON对象、Extra data等格式问题）",
+            "推理模型空响应智能提示（提示启用Stream模式）",
+            "测试连接按钮禁用状态优化",
+            "编辑配置时自动获取数据库中的API Key"
+        ]
+    },
     "2.10.1": {
         "date": "2025-12-12",
         "features": [
