@@ -1083,16 +1083,14 @@ def api_test_llm_config():
 
         if enable_stream:
             # Stream模式
-            # 构建请求参数
             request_params = {
                 "model": model_name,
                 "messages": [
                     {"role": "user", "content": test_message}
                 ],
-                "max_tokens": 50,
+                "max_tokens": 100,
                 "stream": True
             }
-            # 只有明确启用 thinking 时才传 extra_body
             if enable_thinking:
                 request_params["extra_body"] = {"enable_thinking": True}
 
@@ -1100,25 +1098,36 @@ def api_test_llm_config():
 
             # 收集stream响应
             result = ""
+            reasoning = ""
             for chunk in response:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    result += chunk.choices[0].delta.content
+                if chunk.choices and len(chunk.choices) > 0:
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, 'content') and delta.content:
+                        result += delta.content
+                    # 智谱等模型的思考内容
+                    if hasattr(delta, 'reasoning_content') and delta.reasoning_content:
+                        reasoning += delta.reasoning_content
+            # 如果 content 为空但有 reasoning，使用 reasoning
+            if not result and reasoning:
+                result = f"[思考过程] {reasoning[:200]}..."
         else:
             # 非Stream模式
-            # 构建请求参数
             request_params = {
                 "model": model_name,
                 "messages": [
                     {"role": "user", "content": test_message}
                 ],
-                "max_tokens": 50
+                "max_tokens": 100
             }
-            # 只有明确启用 thinking 时才传 extra_body（避免不兼容的 API 报错）
             if enable_thinking:
                 request_params["extra_body"] = {"enable_thinking": True}
 
             response = client.chat.completions.create(**request_params)
-            result = response.choices[0].message.content or ""
+            message = response.choices[0].message
+            # 优先使用 content，如果为空则尝试 reasoning_content（智谱等模型）
+            result = message.content or ""
+            if not result and hasattr(message, 'reasoning_content') and message.reasoning_content:
+                result = f"[思考过程] {message.reasoning_content[:200]}..."
 
         duration = time.time() - start_time
 
