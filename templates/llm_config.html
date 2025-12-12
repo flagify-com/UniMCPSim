@@ -8,13 +8,20 @@
     <style>
         .form-row {
             display: flex;
-            gap: 1.5rem;
+            gap: 1rem;
         }
         .form-row .form-group {
             flex: 1;
+            margin-bottom: 0.8rem;
+        }
+        .form-row .form-group.flex-2 {
+            flex: 2;
+        }
+        .form-group {
+            margin-bottom: 0.8rem;
         }
         .collapsible-info {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
         .collapsible-info summary {
             cursor: pointer;
@@ -77,70 +84,65 @@
                 </details>
 
                 <form id="llmConfigForm">
-                    <!-- 服务商选择 -->
-                    <div class="form-group">
-                        <label class="form-label">服务商</label>
-                        <select id="provider" class="form-control" onchange="onProviderChange()">
-                            <option value="custom">自定义</option>
-                            <option value="openai">OpenAI</option>
-                            <option value="aliyun">阿里云百炼</option>
-                            <option value="zhipu">智谱AI</option>
-                            <option value="deepseek">DeepSeek</option>
-                            <option value="moonshot">月之暗面</option>
-                            <option value="doubao">豆包大模型</option>
-                            <option value="siliconflow">硅基流动</option>
-                            <option value="gemini">Google Gemini</option>
-                            <option value="ollama">Ollama (本地)</option>
-                        </select>
-                        <div class="provider-hint" id="providerHint"></div>
-                    </div>
-
-                    <!-- API Base URL -->
-                    <div class="form-group">
-                        <label class="form-label required">API Base URL</label>
-                        <input type="text" id="apiBaseUrl" class="form-control"
-                               placeholder="https://api.openai.com/v1" required>
-                    </div>
-
-                    <!-- API Key -->
-                    <div class="form-group">
-                        <label class="form-label required">API Key</label>
-                        <input type="password" id="apiKey" class="form-control"
-                               placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxx" required>
-                        <small class="form-text">您的API密钥（保存后将脱敏显示）</small>
-                    </div>
-
-                    <!-- Model Name -->
-                    <div class="form-group">
-                        <label class="form-label required">Model Name</label>
-                        <input type="text" id="modelName" class="form-control"
-                               placeholder="请输入模型名称" required>
-                        <small class="form-text" id="modelHint">请查阅服务商文档获取可用模型列表</small>
-                    </div>
-
-                    <!-- Enable Thinking 和 Enable Stream 并排 -->
+                    <!-- 服务商 + API Base URL 同行 -->
                     <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Enable Thinking</label>
-                            <select id="enableThinking" class="form-control">
-                                <option value="false">否（默认）</option>
-                                <option value="true">是</option>
+                            <label class="form-label">服务商</label>
+                            <select id="provider" class="form-control" onchange="onProviderChange()">
+                                <option value="custom">自定义</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="aliyun">阿里云百炼</option>
+                                <option value="zhipu">智谱AI</option>
+                                <option value="deepseek">DeepSeek</option>
+                                <option value="moonshot">月之暗面</option>
+                                <option value="doubao">豆包大模型</option>
+                                <option value="siliconflow">硅基流动</option>
+                                <option value="gemini">Google Gemini</option>
+                                <option value="ollama">Ollama (本地)</option>
                             </select>
-                            <small class="form-text">思考模式可能影响JSON输出</small>
                         </div>
+                        <div class="form-group flex-2">
+                            <label class="form-label required">API Base URL</label>
+                            <input type="text" id="apiBaseUrl" class="form-control"
+                                   placeholder="https://api.openai.com/v1" required>
+                        </div>
+                    </div>
+                    <div class="provider-hint" id="providerHint" style="margin-top: -0.5rem; margin-bottom: 0.8rem;"></div>
 
+                    <!-- API Key + Model Name 同行 -->
+                    <div class="form-row">
                         <div class="form-group">
-                            <label class="form-label">Enable Stream</label>
-                            <select id="enableStream" class="form-control">
+                            <label class="form-label required">API Key</label>
+                            <input type="password" id="apiKey" class="form-control"
+                                   placeholder="sk-xxxxxxxx" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label required">Model Name</label>
+                            <input type="text" id="modelName" class="form-control"
+                                   placeholder="模型名称" required>
+                        </div>
+                    </div>
+
+                    <!-- Enable Thinking + Enable Stream 同行 -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Thinking</label>
+                            <select id="enableThinking" class="form-control" title="思考模式可能影响JSON输出">
                                 <option value="false">否（默认）</option>
                                 <option value="true">是</option>
                             </select>
-                            <small class="form-text">某些模型强制要求启用</small>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Stream</label>
+                            <select id="enableStream" class="form-control" title="某些模型强制要求启用">
+                                <option value="false">否（默认）</option>
+                                <option value="true">是</option>
+                            </select>
                         </div>
                     </div>
 
                     <!-- 操作按钮 -->
-                    <div class="form-group" style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <div class="form-group" style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 0.5rem;">
                         <button type="button" class="btn btn-secondary" onclick="testConnection()">测试连接</button>
                         <button type="submit" class="btn btn-primary">保存配置</button>
                     </div>
@@ -220,7 +222,6 @@
                     document.getElementById('apiBaseUrl').value = config.url;
                 }
                 document.getElementById('providerHint').textContent = config.hint;
-                document.getElementById('modelHint').textContent = config.hint;
             }
         }
 
