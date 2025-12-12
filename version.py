@@ -3,11 +3,21 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.10.0"
-__version_info__ = (2, 10, 0)
+__version__ = "2.10.1"
+__version_info__ = (2, 10, 1)
 
 # Version history
 VERSION_HISTORY = {
+    "2.10.1": {
+        "date": "2025-12-12",
+        "features": [
+            "LLM配置页面UI优化（服务商下拉、压缩布局）",
+            "支持10种主流大模型服务商快捷配置",
+            "修复智谱等模型reasoning_content字段兼容",
+            "修复动作生成未读取数据库LLM配置的问题",
+            "简化.env.example配置示例"
+        ]
+    },
     "2.10.0": {
         "date": "2025-12-11",
         "features": [

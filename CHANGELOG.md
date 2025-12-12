@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.10.1] - 2025-12-12
+
+### Added
+- LLM configuration page UI enhancements
+  - Provider dropdown with 10 mainstream LLM services (OpenAI, Aliyun Bailian, Zhipu AI, DeepSeek, Moonshot, Doubao, SiliconFlow, Google Gemini, Ollama)
+  - Auto-fill API Base URL when selecting provider
+  - Compact two-column layout (Provider+URL, API Key+Model, Thinking+Stream)
+  - Collapsible configuration help section
+
+### Fixed
+- Fixed `generate_actions_with_ai()` not reading database LLM configuration
+- Fixed Zhipu GLM models (e.g., glm-4.6) returning empty response in test connection
+  - Added support for `reasoning_content` field in both stream and non-stream modes
+- Increased max_tokens to 100 for more complete test responses
+
+### Changed
+- Simplified `.env.example` with LLM configs commented out (Web UI recommended)
+
+## [2.10.0] - 2025-12-11
+
+### Added
+- OEM white-label deployment support
+  - Removed vendor branding from navigation and footer
+  - Configurable branding via OEM branch
+- Default example values in create app modal
+- Smart AI prompt pre-fill with tool definition template
+- Docker containerization support
+  - Dockerfile with China mirror acceleration
+  - docker-compose.yml for easy deployment
+  - UTF-8 locale settings for OpenEuler compatibility
+
+### Fixed
+- Token validation and SQLAlchemy object comparison issues
+- UnicodeDecodeError on OpenEuler containers
+
 ## [2.9.0] - 2025-12-08
 
 ### Added
@@ -198,13 +233,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite database with SQLAlchemy ORM
 - Comprehensive test coverage
 
-[Unreleased]: https://github.com/yourusername/UniMCPSim/compare/v2.6.0...HEAD
-[2.6.0]: https://github.com/yourusername/UniMCPSim/compare/v2.5.0...v2.6.0
-[2.5.0]: https://github.com/yourusername/UniMCPSim/compare/v2.4.3...v2.5.0
-[2.4.3]: https://github.com/yourusername/UniMCPSim/compare/v2.4.0...v2.4.3
-[2.4.0]: https://github.com/yourusername/UniMCPSim/compare/v2.3.0...v2.4.0
-[2.3.0]: https://github.com/yourusername/UniMCPSim/compare/v2.2.0...v2.3.0
-[2.2.0]: https://github.com/yourusername/UniMCPSim/compare/v2.1.0...v2.2.0
-[2.1.0]: https://github.com/yourusername/UniMCPSim/compare/v2.0.0...v2.1.0
-[2.0.0]: https://github.com/yourusername/UniMCPSim/compare/v1.0.0...v2.0.0
-[1.0.0]: https://github.com/yourusername/UniMCPSim/releases/tag/v1.0.0
+[Unreleased]: https://github.com/flagify-com/UniMCPSim/compare/v2.10.1...HEAD
+[2.10.1]: https://github.com/flagify-com/UniMCPSim/compare/v2.10.0...v2.10.1
+[2.10.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.9.0...v2.10.0
+[2.9.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.6.0...v2.9.0
+[2.6.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.5.0...v2.6.0
+[2.5.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.4.3...v2.5.0
+[2.4.3]: https://github.com/flagify-com/UniMCPSim/compare/v2.4.0...v2.4.3
+[2.4.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.3.0...v2.4.0
+[2.3.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.2.0...v2.3.0
+[2.2.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.1.0...v2.2.0
+[2.1.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/flagify-com/UniMCPSim/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/flagify-com/UniMCPSim/releases/tag/v1.0.0
