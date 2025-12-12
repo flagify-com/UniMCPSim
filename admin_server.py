@@ -701,17 +701,25 @@ def generate_actions_with_ai(category, name, display_name, description, prompt):
         # 使用变量替换生成最终的user prompt
         user_prompt = prompt_template.template.format(**variables)
 
-        # 从环境变量读取OpenAI配置
-        api_key = os.getenv('OPENAI_API_KEY')
-        model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
-        api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
-        # 读取enable_thinking配置,默认为False(禁用)
-        enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
-        # 读取stream配置,默认为False(某些模型如qwq-32b强制要求stream=True)
-        use_stream = os.getenv('OPENAI_STREAM', 'false').lower() == 'true'
+        # 读取LLM配置（数据库优先，环境变量兜底）
+        db_config = db_manager.get_llm_config()
+        if db_config and db_config.api_key:
+            # 使用数据库配置
+            api_key = db_config.api_key
+            api_base = db_config.api_base_url or 'https://api.openai.com/v1'
+            model = db_config.model_name or 'gpt-4o-mini'
+            enable_thinking = db_config.enable_thinking if db_config.enable_thinking is not None else False
+            use_stream = db_config.enable_stream if db_config.enable_stream is not None else False
+        else:
+            # 回退到环境变量配置
+            api_key = os.getenv('OPENAI_API_KEY')
+            model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
+            api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
+            enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
+            use_stream = os.getenv('OPENAI_STREAM', 'false').lower() == 'true'
 
         if not api_key:
-            raise Exception("OPENAI_API_KEY not configured")
+            raise Exception("未配置大模型 API Key，请在「大模型配置」页面进行设置")
 
         # 配置OpenAI客户端
         client = openai.OpenAI(
@@ -1075,34 +1083,48 @@ def api_test_llm_config():
 
         if enable_stream:
             # Stream模式
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            # 构建请求参数
+            request_params = {
+                "model": model_name,
+                "messages": [
                     {"role": "user", "content": test_message}
                 ],
-                max_tokens=50,
-                stream=True,
-                extra_body={"enable_thinking": enable_thinking}
-            )
+                "max_tokens": 50,
+                "stream": True
+            }
+            # 只有明确启用 thinking 时才传 extra_body
+            if enable_thinking:
+                request_params["extra_body"] = {"enable_thinking": True}
+
+            response = client.chat.completions.create(**request_params)
 
             # 收集stream响应
             result = ""
             for chunk in response:
-                if chunk.choices[0].delta.content:
+                if chunk.choices and chunk.choices[0].delta.content:
                     result += chunk.choices[0].delta.content
         else:
             # 非Stream模式
-            response = client.chat.completions.create(
-                model=model_name,
-                messages=[
+            # 构建请求参数
+            request_params = {
+                "model": model_name,
+                "messages": [
                     {"role": "user", "content": test_message}
                 ],
-                max_tokens=50,
-                extra_body={"enable_thinking": enable_thinking}
-            )
-            result = response.choices[0].message.content
+                "max_tokens": 50
+            }
+            # 只有明确启用 thinking 时才传 extra_body（避免不兼容的 API 报错）
+            if enable_thinking:
+                request_params["extra_body"] = {"enable_thinking": True}
+
+            response = client.chat.completions.create(**request_params)
+            result = response.choices[0].message.content or ""
 
         duration = time.time() - start_time
+
+        # 确保 result 不为 None
+        if result is None:
+            result = "(模型返回内容为空)"
 
         return jsonify({
             'success': True,
