@@ -159,9 +159,18 @@ class AIResponseGenerator:
 
                     # 收集stream响应
                     result = ""
+                    reasoning = ""
                     for chunk in response:
-                        if chunk.choices[0].delta.content:
-                            result += chunk.choices[0].delta.content
+                        if chunk.choices and len(chunk.choices) > 0:
+                            delta = chunk.choices[0].delta
+                            if hasattr(delta, 'content') and delta.content:
+                                result += delta.content
+                            # 智谱等模型的思考内容
+                            if hasattr(delta, 'reasoning_content') and delta.reasoning_content:
+                                reasoning += delta.reasoning_content
+                    # 如果 content 为空但有 reasoning，使用 reasoning
+                    if not result and reasoning:
+                        result = reasoning
 
                     duration = time.time() - start_time
                 else:
@@ -180,8 +189,11 @@ class AIResponseGenerator:
 
                     duration = time.time() - start_time
 
-                    # 解析响应
-                    result = response.choices[0].message.content
+                    # 解析响应 - 优先使用 content，如果为空则尝试 reasoning_content（智谱等模型）
+                    message = response.choices[0].message
+                    result = message.content or ""
+                    if not result and hasattr(message, 'reasoning_content') and message.reasoning_content:
+                        result = message.reasoning_content
 
                 # 记录成功的 AI 调用
                 # Stream模式下无法获取usage信息
