@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.0] - 2025-12-12
+
+### Added
+- Multi-LLM configuration management
+  - Pre-register multiple LLM configurations for different providers/models
+  - Card list view displaying all configs with active indicator
+  - Add/edit/delete configurations via modal dialog
+  - One-click activation to switch between configs
+  - Auto-enable first config when only one exists
+- Hot config switching across processes
+  - MCP Server automatically detects config changes from database
+  - No server restart required when switching LLM configs
+- Enhanced JSON response parsing
+  - Support for multiple JSON objects (extract first valid object)
+  - Handle "Extra data" format issues from some LLM providers
+  - Better markdown code block cleanup
+
+### Fixed
+- SQLAlchemy session error when updating LLM config (`Instance not bound to Session`)
+- Test connection now uses correct API Key from specific config (not just active config)
+- API Key not updated when unchanged (masked format detection)
+- Empty response hint for reasoning models (suggest enabling Stream mode)
+
+### Changed
+- Test connection button shows "Testing..." and disabled state during request
+- Improved error messages with model name and stream status for debugging
+
 ## [2.10.1] - 2025-12-12
 
 ### Added
@@ -233,7 +260,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite database with SQLAlchemy ORM
 - Comprehensive test coverage
 
-[Unreleased]: https://github.com/flagify-com/UniMCPSim/compare/v2.10.1...HEAD
+[Unreleased]: https://github.com/flagify-com/UniMCPSim/compare/v2.11.0...HEAD
+[2.11.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.10.1...v2.11.0
 [2.10.1]: https://github.com/flagify-com/UniMCPSim/compare/v2.10.0...v2.10.1
 [2.10.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.9.0...v2.10.0
 [2.9.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.6.0...v2.9.0

@@ -1049,16 +1049,22 @@ def api_test_llm_config():
         model_name = data.get('model_name', 'gpt-4o-mini')
         enable_thinking = data.get('enable_thinking', False)
         enable_stream = data.get('enable_stream', False)
+        config_id = data.get('config_id')  # 编辑模式下传入配置ID
 
-        # 如果api_key包含***，从数据库读取真实的key
+        # 如果api_key包含***（masked格式），从数据库读取真实的key
         if api_key and '***' in api_key:
-            config = db_manager.get_llm_config()
+            # 优先从指定的配置ID获取
+            if config_id:
+                config = db_manager.get_llm_config_by_id(config_id)
+            else:
+                config = db_manager.get_llm_config()
+
             if config and config.api_key:
                 api_key = config.api_key
             else:
                 return jsonify({
                     'success': False,
-                    'error': '未配置API Key'
+                    'error': '未配置API Key，请输入完整的API Key'
                 }), 400
 
         if not api_key:
@@ -1149,6 +1155,196 @@ def api_test_llm_config():
             'success': False,
             'error': f'连接失败: {error_msg}'
         }), 400
+
+
+# ===== LLM多配置管理API =====
+
+def mask_api_key(api_key: str) -> str:
+    """API Key脱敏显示"""
+    if not api_key:
+        return None
+    if len(api_key) > 10:
+        return api_key[:6] + '***' + api_key[-4:]
+    else:
+        return api_key[:3] + '***'
+
+
+def llm_config_to_dict(config, mask_key: bool = True) -> dict:
+    """将LLMConfig对象转换为字典"""
+    return {
+        'id': config.id,
+        'name': config.name,
+        'is_active': config.is_active,
+        'api_key': mask_api_key(config.api_key) if mask_key else config.api_key,
+        'api_base_url': config.api_base_url,
+        'model_name': config.model_name,
+        'enable_thinking': config.enable_thinking,
+        'enable_stream': config.enable_stream,
+        'created_at': config.created_at.isoformat() if config.created_at else None,
+        'updated_at': config.updated_at.isoformat() if config.updated_at else None,
+        'has_config': bool(config.api_key)
+    }
+
+
+@app.route('/admin/api/llm-configs', methods=['GET'])
+@login_required
+def api_get_all_llm_configs():
+    """获取所有大模型配置"""
+    try:
+        configs = db_manager.get_all_llm_configs()
+        return jsonify({
+            'configs': [llm_config_to_dict(c) for c in configs],
+            'total': len(configs)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/llm-configs', methods=['POST'])
+@login_required
+def api_create_llm_config():
+    """创建新的大模型配置"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+
+        name = data.get('name', '').strip()
+        if not name:
+            return jsonify({'error': '配置名称不能为空'}), 400
+
+        api_key = data.get('api_key', '')
+        api_base_url = data.get('api_base_url', 'https://api.openai.com/v1')
+        model_name = data.get('model_name', 'gpt-4o-mini')
+        enable_thinking = data.get('enable_thinking', False)
+        enable_stream = data.get('enable_stream', False)
+
+        config = db_manager.create_llm_config(
+            name=name,
+            api_key=api_key,
+            api_base_url=api_base_url,
+            model_name=model_name,
+            enable_thinking=enable_thinking,
+            enable_stream=enable_stream
+        )
+
+        # 如果配置自动启用了，重新加载AI生成器
+        if config.is_active:
+            from ai_generator import ai_generator
+            ai_generator.reload_config()
+
+        return jsonify({
+            'success': True,
+            'message': '配置创建成功',
+            'config': llm_config_to_dict(config)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/llm-configs/<int:config_id>', methods=['GET'])
+@login_required
+def api_get_llm_config_by_id(config_id):
+    """获取指定ID的大模型配置"""
+    try:
+        config = db_manager.get_llm_config_by_id(config_id)
+        if not config:
+            return jsonify({'error': '配置不存在'}), 404
+        return jsonify(llm_config_to_dict(config))
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/llm-configs/<int:config_id>', methods=['PUT'])
+@login_required
+def api_update_llm_config_by_id(config_id):
+    """更新指定ID的大模型配置"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Invalid JSON data'}), 400
+
+        name = data.get('name', '').strip()
+        if not name:
+            return jsonify({'error': '配置名称不能为空'}), 400
+
+        api_key = data.get('api_key')
+        # 如果api_key包含***，不更新
+        if api_key and '***' in api_key:
+            api_key = None
+
+        api_base_url = data.get('api_base_url', 'https://api.openai.com/v1')
+        model_name = data.get('model_name', 'gpt-4o-mini')
+        enable_thinking = data.get('enable_thinking', False)
+        enable_stream = data.get('enable_stream', False)
+
+        config = db_manager.update_llm_config(
+            config_id=config_id,
+            name=name,
+            api_key=api_key,
+            api_base_url=api_base_url,
+            model_name=model_name,
+            enable_thinking=enable_thinking,
+            enable_stream=enable_stream
+        )
+
+        if not config:
+            return jsonify({'error': '配置不存在'}), 404
+
+        # 如果更新的是启用的配置，重新加载AI生成器
+        if config.is_active:
+            from ai_generator import ai_generator
+            ai_generator.reload_config()
+
+        return jsonify({
+            'success': True,
+            'message': '配置更新成功',
+            'config': llm_config_to_dict(config)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/llm-configs/<int:config_id>', methods=['DELETE'])
+@login_required
+def api_delete_llm_config_by_id(config_id):
+    """删除指定ID的大模型配置"""
+    try:
+        success = db_manager.delete_llm_config(config_id)
+        if not success:
+            return jsonify({'error': '配置不存在'}), 404
+
+        # 重新加载AI生成器配置（可能切换了启用的配置）
+        from ai_generator import ai_generator
+        ai_generator.reload_config()
+
+        return jsonify({
+            'success': True,
+            'message': '配置删除成功'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/admin/api/llm-configs/<int:config_id>/activate', methods=['POST'])
+@login_required
+def api_activate_llm_config(config_id):
+    """启用指定的大模型配置"""
+    try:
+        success = db_manager.activate_llm_config(config_id)
+        if not success:
+            return jsonify({'error': '配置不存在'}), 404
+
+        # 重新加载AI生成器配置
+        from ai_generator import ai_generator
+        ai_generator.reload_config()
+
+        return jsonify({
+            'success': True,
+            'message': '配置已启用'
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 # ===== Playground API =====

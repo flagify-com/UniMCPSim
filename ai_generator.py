@@ -22,6 +22,10 @@ class AIResponseGenerator:
         # 初始化数据库管理器
         self.db_manager = DatabaseManager()
 
+        # 配置版本追踪（用于检测配置变化）
+        self._config_id = None
+        self._config_updated_at = None
+
         # 加载配置（数据库优先，环境变量兜底）
         self._load_config()
 
@@ -37,6 +41,9 @@ class AIResponseGenerator:
             model = db_config.model_name or 'gpt-4o-mini'
             enable_thinking = db_config.enable_thinking
             use_stream = db_config.enable_stream
+            # 记录配置版本
+            self._config_id = db_config.id
+            self._config_updated_at = db_config.updated_at
         else:
             # 回退到环境变量配置
             api_key = os.getenv('OPENAI_API_KEY')
@@ -46,6 +53,8 @@ class AIResponseGenerator:
             enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
             # 读取stream配置,默认为False(某些模型如qwq-32b强制要求stream=True)
             use_stream = os.getenv('OPENAI_STREAM', 'false').lower() == 'true'
+            self._config_id = None
+            self._config_updated_at = None
 
         if api_key:
             self.client = OpenAI(api_key=api_key, base_url=api_base)
@@ -59,9 +68,84 @@ class AIResponseGenerator:
             self.enable_thinking = False
             self.use_stream = False
 
+    def _check_and_reload_config(self):
+        """检查配置是否有更新，如有则重新加载"""
+        db_config = self.db_manager.get_llm_config()
+        if db_config:
+            # 检查是否切换了配置或配置有更新
+            if (db_config.id != self._config_id or
+                db_config.updated_at != self._config_updated_at):
+                self._load_config()
+        elif self._config_id is not None:
+            # 数据库配置被删除，重新加载（回退到环境变量）
+            self._load_config()
+
     def reload_config(self):
         """重新加载配置（用于配置更新后立即生效）"""
         self._load_config()
+
+    def _parse_json_response(self, result: str) -> Dict[str, Any]:
+        """解析 AI 返回的 JSON 响应，处理各种格式问题
+
+        Args:
+            result: AI 返回的原始字符串
+
+        Returns:
+            解析后的 JSON 对象
+
+        Raises:
+            json.JSONDecodeError: 无法解析为有效 JSON
+        """
+        if not result or not result.strip():
+            raise json.JSONDecodeError("Empty response", "", 0)
+
+        result = result.strip()
+
+        # 移除 markdown 代码块
+        if result.startswith("```json"):
+            result = result[7:]
+        elif result.startswith("```"):
+            result = result[3:]
+        if result.endswith("```"):
+            result = result[:-3]
+        result = result.strip()
+
+        # 尝试直接解析
+        try:
+            return json.loads(result)
+        except json.JSONDecodeError:
+            pass
+
+        # 尝试提取第一个完整的 JSON 对象
+        start = result.find('{')
+        if start != -1:
+            depth = 0
+            in_string = False
+            escape_next = False
+            for i, char in enumerate(result[start:], start):
+                if escape_next:
+                    escape_next = False
+                    continue
+                if char == '\\' and in_string:
+                    escape_next = True
+                    continue
+                if char == '"' and not escape_next:
+                    in_string = not in_string
+                    continue
+                if in_string:
+                    continue
+                if char == '{':
+                    depth += 1
+                elif char == '}':
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            return json.loads(result[start:i+1])
+                        except json.JSONDecodeError:
+                            break
+
+        # 最后尝试：直接解析（会抛出原始错误）
+        return json.loads(result)
 
     def generate_response(self, app_info: Dict[str, Any], action: str, parameters: Dict[str, Any], action_def: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """生成模拟响应
@@ -72,6 +156,9 @@ class AIResponseGenerator:
             parameters: 用户调用参数
             action_def: 动作完整定义
         """
+
+        # 检查配置是否有更新（支持多进程场景下的配置热切换）
+        self._check_and_reload_config()
 
         # 提取应用信息
         app_name = app_info.get('display_name', app_info.get('name', 'Unknown'))
@@ -215,20 +302,17 @@ class AIResponseGenerator:
                     usage=usage
                 )
 
-                try:
-                    return json.loads(result)
-                except json.JSONDecodeError:
-                    # 如果解析失败，清理并重试
-                    result = result.strip()
-                    if result.startswith("```json"):
-                        result = result[7:]
-                    if result.endswith("```"):
-                        result = result[:-3]
-                    return json.loads(result.strip())
+                # 使用增强的 JSON 解析方法
+                return self._parse_json_response(result)
 
             except Exception as e:
                 duration = time.time() - start_time
                 error_msg = str(e)
+
+                # 检测空响应问题，可能需要启用 stream 模式
+                hint = ""
+                if "Empty response" in error_msg or "column 1" in error_msg:
+                    hint = f" (模型 {self.model} 可能需要启用 Stream 模式)"
 
                 # 记录失败的 AI 调用
                 mcp_logger.log_ai_call(
@@ -236,7 +320,7 @@ class AIResponseGenerator:
                     model=self.model,
                     prompt=prompt,
                     success=False,
-                    error=error_msg,
+                    error=error_msg + hint,
                     duration=duration
                 )
 
@@ -244,11 +328,13 @@ class AIResponseGenerator:
                 return {
                     "success": False,
                     "error": "AI generation failed",
-                    "error_detail": error_msg,
+                    "error_detail": error_msg + hint,
                     "code": 500,
                     "app": app_name,
                     "action": action,
-                    "fallback": "Consider using default response or check AI configuration"
+                    "model": self.model,
+                    "stream_enabled": self.use_stream,
+                    "fallback": "Consider enabling Stream mode for reasoning models like deepseek-reasoner, qwq-32b"
                 }
 
         except Exception as e:
