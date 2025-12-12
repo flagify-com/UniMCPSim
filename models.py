@@ -106,10 +106,12 @@ class PromptTemplate(Base):
 
 
 class LLMConfig(Base):
-    """大模型配置（单例表）"""
+    """大模型配置（支持多配置）"""
     __tablename__ = 'llm_config'
 
     id = Column(Integer, primary_key=True)
+    name = Column(String(100), nullable=False, default='默认配置')  # 配置名称
+    is_active = Column(Boolean, default=False)  # 是否启用（同一时间只能有一个启用）
     api_key = Column(String(500), nullable=True)  # API密钥（加密存储）
     api_base_url = Column(String(500), default='https://api.openai.com/v1')
     model_name = Column(String(100), default='gpt-4o-mini')
@@ -160,6 +162,33 @@ class DatabaseManager:
         self.engine = create_engine(db_url, echo=False)
         Base.metadata.create_all(self.engine)
         self.SessionLocal = sessionmaker(bind=self.engine)
+
+        # 数据库迁移：为旧表添加新字段
+        self._migrate_llm_config_table()
+
+    def _migrate_llm_config_table(self):
+        """迁移 llm_config 表，添加新字段"""
+        from sqlalchemy import text, inspect
+
+        inspector = inspect(self.engine)
+        if 'llm_config' not in inspector.get_table_names():
+            return  # 表不存在，无需迁移
+
+        columns = [col['name'] for col in inspector.get_columns('llm_config')]
+
+        with self.engine.connect() as conn:
+            # 添加 name 字段
+            if 'name' not in columns:
+                conn.execute(text("ALTER TABLE llm_config ADD COLUMN name VARCHAR(100) DEFAULT '默认配置'"))
+                conn.commit()
+
+            # 添加 is_active 字段
+            if 'is_active' not in columns:
+                conn.execute(text("ALTER TABLE llm_config ADD COLUMN is_active BOOLEAN DEFAULT 0"))
+                conn.commit()
+                # 将第一条记录设为启用
+                conn.execute(text("UPDATE llm_config SET is_active = 1 WHERE id = (SELECT MIN(id) FROM llm_config)"))
+                conn.commit()
 
     def get_session(self) -> Session:
         """获取数据库会话"""
@@ -348,20 +377,143 @@ class DatabaseManager:
         return self.change_user_password('admin', new_password)
 
     def get_llm_config(self) -> Optional[LLMConfig]:
-        """获取大模型配置（单例）"""
+        """获取当前启用的大模型配置"""
         session = self.get_session()
         try:
-            config = session.query(LLMConfig).first()
+            # 优先获取启用的配置
+            config = session.query(LLMConfig).filter_by(is_active=True).first()
+            if not config:
+                # 如果没有启用的，获取第一个配置并自动启用
+                config = session.query(LLMConfig).first()
+                if config:
+                    config.is_active = True
+                    session.commit()
             return config
+        finally:
+            session.close()
+
+    def get_all_llm_configs(self) -> List[LLMConfig]:
+        """获取所有大模型配置"""
+        session = self.get_session()
+        try:
+            configs = session.query(LLMConfig).order_by(LLMConfig.created_at.desc()).all()
+            return configs
+        finally:
+            session.close()
+
+    def get_llm_config_by_id(self, config_id: int) -> Optional[LLMConfig]:
+        """根据ID获取大模型配置"""
+        session = self.get_session()
+        try:
+            config = session.query(LLMConfig).filter_by(id=config_id).first()
+            return config
+        finally:
+            session.close()
+
+    def create_llm_config(self, name: str, api_key: str, api_base_url: str,
+                          model_name: str, enable_thinking: bool, enable_stream: bool) -> LLMConfig:
+        """创建新的大模型配置"""
+        session = self.get_session()
+        try:
+            # 如果是第一个配置，自动启用
+            is_first = session.query(LLMConfig).count() == 0
+
+            config = LLMConfig(
+                name=name,
+                is_active=is_first,
+                api_key=api_key,
+                api_base_url=api_base_url,
+                model_name=model_name,
+                enable_thinking=enable_thinking,
+                enable_stream=enable_stream
+            )
+            session.add(config)
+            session.commit()
+
+            # 刷新并分离对象，避免 session 关闭后无法访问属性
+            session.refresh(config)
+            session.expunge(config)
+            return config
+        finally:
+            session.close()
+
+    def update_llm_config(self, config_id: int, name: str, api_key: Optional[str],
+                          api_base_url: str, model_name: str,
+                          enable_thinking: bool, enable_stream: bool) -> Optional[LLMConfig]:
+        """更新大模型配置"""
+        session = self.get_session()
+        try:
+            config = session.query(LLMConfig).filter_by(id=config_id).first()
+            if not config:
+                return None
+
+            config.name = name
+            if api_key is not None:
+                config.api_key = api_key
+            config.api_base_url = api_base_url
+            config.model_name = model_name
+            config.enable_thinking = enable_thinking
+            config.enable_stream = enable_stream
+            config.updated_at = datetime.now(timezone.utc)
+
+            session.commit()
+            # 刷新并分离对象，避免 session 关闭后无法访问属性
+            session.refresh(config)
+            session.expunge(config)
+            return config
+        finally:
+            session.close()
+
+    def delete_llm_config(self, config_id: int) -> bool:
+        """删除大模型配置"""
+        session = self.get_session()
+        try:
+            config = session.query(LLMConfig).filter_by(id=config_id).first()
+            if not config:
+                return False
+
+            was_active = config.is_active
+            session.delete(config)
+            session.commit()
+
+            # 如果删除的是启用的配置，自动启用第一个
+            if was_active:
+                first_config = session.query(LLMConfig).first()
+                if first_config:
+                    first_config.is_active = True
+                    session.commit()
+
+            return True
+        finally:
+            session.close()
+
+    def activate_llm_config(self, config_id: int) -> bool:
+        """启用指定的大模型配置（同时禁用其他配置）"""
+        session = self.get_session()
+        try:
+            # 先禁用所有配置
+            session.query(LLMConfig).update({LLMConfig.is_active: False})
+
+            # 启用指定配置
+            config = session.query(LLMConfig).filter_by(id=config_id).first()
+            if not config:
+                return False
+
+            config.is_active = True
+            session.commit()
+            return True
         finally:
             session.close()
 
     def save_llm_config(self, api_key: Optional[str], api_base_url: str,
                        model_name: str, enable_thinking: bool, enable_stream: bool) -> LLMConfig:
-        """保存或更新大模型配置"""
+        """保存或更新大模型配置（兼容旧API）"""
         session = self.get_session()
         try:
-            config = session.query(LLMConfig).first()
+            config = session.query(LLMConfig).filter_by(is_active=True).first()
+            if not config:
+                config = session.query(LLMConfig).first()
+
             if config:
                 # 更新现有配置
                 if api_key is not None:
@@ -374,6 +526,8 @@ class DatabaseManager:
             else:
                 # 创建新配置
                 config = LLMConfig(
+                    name='默认配置',
+                    is_active=True,
                     api_key=api_key,
                     api_base_url=api_base_url,
                     model_name=model_name,
