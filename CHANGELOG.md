@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - OEM white-label deployment support
   - Removed vendor branding from navigation and footer
   - Configurable branding via OEM branch
-- Default example values in create app modal (HoneyGuide-SOAR template)
+- Default example values in create app modal
 - Smart AI prompt pre-fill with tool definition template
 - Docker containerization support
   - Dockerfile with China mirror acceleration
