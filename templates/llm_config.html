@@ -208,6 +208,7 @@
                 const result = await response.json();
 
                 if (result.success) {
+                    const responseText = result.response || '(模型未返回内容，但连接成功)';
                     testResultContent.innerHTML = `
                         <div style="color: var(--success);">
                             <strong>✓ ${result.message}</strong>
@@ -215,7 +216,7 @@
                                 <div style="margin-bottom: 0.5rem;"><strong>模型：</strong>${result.model}</div>
                                 <div style="margin-bottom: 0.5rem;"><strong>响应时间：</strong>${result.duration}</div>
                                 <div style="margin-bottom: 0.3rem;"><strong>模型响应：</strong></div>
-                                <div style="padding: 0.5rem; background-color: var(--bg-100); border-left: 3px solid var(--primary); white-space: pre-wrap; word-break: break-word;">${result.response}</div>
+                                <div style="padding: 0.5rem; background-color: var(--bg-100); border-left: 3px solid var(--primary); white-space: pre-wrap; word-break: break-word;">${responseText}</div>
                             </div>
                         </div>
                     `;
