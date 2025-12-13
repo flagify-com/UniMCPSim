@@ -577,22 +577,39 @@ def update_token_apps(token_id):
     finally:
         session_db.close()
 
-@app.route('/admin/api/logs', methods=['GET'])
+@app.route('/admin/api/logs', methods=['GET', 'DELETE'])
 @login_required
-def get_logs():
-    """获取操作日志"""
+def handle_logs():
+    """获取或清除操作日志"""
     session_db = db_manager.get_session()
     try:
-        page = int(request.args.get('page', 1))
-        per_page = int(request.args.get('per_page', 50))
+        if request.method == 'DELETE':
+            # 清除所有日志
+            deleted_count = session_db.query(AuditLog).delete()
+            session_db.commit()
+            return jsonify({'success': True, 'deleted_count': deleted_count})
 
-        logs = session_db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(per_page).offset((page - 1) * per_page).all()
+        # GET: 获取日志列表
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        app_id = request.args.get('app_id')  # 可选：按应用筛选
+
+        # 构建查询
+        query = session_db.query(AuditLog)
+        if app_id:
+            query = query.filter(AuditLog.application_id == int(app_id))
+
+        # 获取总数
+        total = query.count()
+
+        logs = query.order_by(AuditLog.timestamp.desc()).limit(per_page).offset((page - 1) * per_page).all()
 
         result = []
         for log in logs:
             app = session_db.query(Application).filter_by(id=log.application_id).first() if log.application_id else None
             result.append({
                 'id': log.id,
+                'app_id': log.application_id,
                 'app_name': app.display_name if app else 'N/A',
                 'action': log.action,
                 'parameters': log.parameters,
@@ -601,7 +618,13 @@ def get_logs():
                 'timestamp': log.timestamp.isoformat()
             })
 
-        return jsonify(result)
+        return jsonify({
+            'logs': result,
+            'total': total,
+            'page': page,
+            'per_page': per_page,
+            'hasMore': page * per_page < total
+        })
     finally:
         session_db.close()
 
