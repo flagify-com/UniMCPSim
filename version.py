@@ -3,11 +3,20 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.12.1"
-__version_info__ = (2, 12, 1)
+__version__ = "2.12.2"
+__version_info__ = (2, 12, 2)
 
 # Version history
 VERSION_HISTORY = {
+    "2.12.2": {
+        "date": "2025-12-13",
+        "features": [
+            "修复非localhost HTTP环境下剪贴板复制失败问题",
+            "Token管理页面复制功能兼容性修复",
+            "应用管理页面MCP配置复制功能兼容性修复",
+            "添加document.execCommand回退方案支持旧浏览器和非安全上下文"
+        ]
+    },
     "2.12.1": {
         "date": "2025-12-13",
         "features": [

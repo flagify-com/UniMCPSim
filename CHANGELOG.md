@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.2] - 2025-12-13
+
+### Fixed
+- Fixed clipboard copy failure in non-localhost HTTP environments (navigator.clipboard API requires secure context)
+- Token management page copy function now works via IP address access
+- App management page MCP config copy function now works via IP address access
+
+### Added
+- Fallback copy mechanism using document.execCommand for legacy browsers and non-secure contexts
+
 ## [2.12.1] - 2025-12-13
 
 ### Changed
