@@ -3,11 +3,20 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.11.3"
-__version_info__ = (2, 11, 3)
+__version__ = "2.12.0"
+__version_info__ = (2, 12, 0)
 
 # Version history
 VERSION_HISTORY = {
+    "2.12.0": {
+        "date": "2025-12-13",
+        "features": [
+            "日志页面无限滚动懒加载（每页20条，滚动到底部自动加载更多）",
+            "日志一键清除功能（带确认对话框）",
+            "日志按应用筛选（下拉框选择特定应用查看日志）",
+            "日志总数显示"
+        ]
+    },
     "2.11.3": {
         "date": "2025-12-13",
         "features": [
