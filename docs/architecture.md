@@ -147,9 +147,11 @@ mcp_server.py:134-142 # 资源列表返回
 - enabled: 是否启用
 ```
 
-#### LLMConfig (大模型配置) - v2.6.0+
+#### LLMConfig (大模型配置) - v2.6.0+ (v2.11.0 支持多配置)
 ```python
 - id: 主键
+- name: 配置名称 (如"OpenAI默认"、"阿里云通义")
+- is_active: 是否启用 (同一时间只能有一个启用)
 - api_key: API密钥
 - api_base_url: API地址
 - model_name: 模型名称
