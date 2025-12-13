@@ -834,14 +834,48 @@
             document.getElementById('mcpConfigModal').classList.remove('show');
         }
 
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                return true;
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                return false;
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
         function copyMcpConfig() {
             const text = document.getElementById('mcpConfigText').value;
-            navigator.clipboard.writeText(text).then(() => {
-                alert('MCP配置已复制到剪贴板！\n\n请记得替换 YOUR_TOKEN_HERE 为实际的token值（从Token管理页面获取）');
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                alert('复制失败，请手动选择复制');
-            });
+            const successMsg = 'MCP配置已复制到剪贴板！\n\n请记得替换 YOUR_TOKEN_HERE 为实际的token值（从Token管理页面获取）';
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(successMsg);
+                }).catch(err => {
+                    console.error('Clipboard API failed:', err);
+                    if (fallbackCopyToClipboard(text)) {
+                        alert(successMsg);
+                    } else {
+                        alert('复制失败，请手动选择复制');
+                    }
+                });
+            } else {
+                if (fallbackCopyToClipboard(text)) {
+                    alert(successMsg);
+                } else {
+                    alert('复制失败，请手动选择复制');
+                }
+            }
         }
 
         // ========== 导出功能 ==========

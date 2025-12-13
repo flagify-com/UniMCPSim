@@ -227,15 +227,54 @@
             loadTokens();
         }
 
+        function fallbackCopyToClipboard(text) {
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            textArea.style.top = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                return true;
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                return false;
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
+        function copyToClipboard(text, successMsg) {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    alert(successMsg);
+                }).catch(err => {
+                    console.error('Clipboard API failed:', err);
+                    if (fallbackCopyToClipboard(text)) {
+                        alert(successMsg);
+                    } else {
+                        alert('复制失败，请手动复制');
+                    }
+                });
+            } else {
+                if (fallbackCopyToClipboard(text)) {
+                    alert(successMsg);
+                } else {
+                    alert('复制失败，请手动复制');
+                }
+            }
+        }
+
         function copyTokenValue(token) {
-            navigator.clipboard.writeText(token);
-            alert('Token已复制到剪贴板');
+            copyToClipboard(token, 'Token已复制到剪贴板');
         }
 
         function copyToken() {
             const token = document.getElementById('newTokenValue').value;
-            navigator.clipboard.writeText(token);
-            alert('Token已复制到剪贴板');
+            copyToClipboard(token, 'Token已复制到剪贴板');
         }
 
         async function showPermissions(tokenId) {
