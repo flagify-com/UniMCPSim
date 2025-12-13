@@ -399,7 +399,7 @@ LOG_LEVEL=INFO
 
 ## Project Status
 
-Current Version: **v2.11.3**
+Current Version: **v2.12.0**
 - ✅ Core MCP simulator fully functional
 - ✅ Pre-configured product simulators
 - ✅ AI-enhanced response generation
@@ -439,3 +439,4 @@ For issues:
 ---
 
 **Note**: This project uses AI to generate mock responses. Ensure OpenAI API is properly configured for full functionality.
+- 我们的项目有两个分支：main 分支和 feature/oem 分支。在 main 分支里，要保持我们产品的品牌名称，比如“雾帜智能”和github项目原始地址；而在 OEM 分支里面就不需要了。所以你在做代码合并的时候，得注意这些区别。

@@ -168,3 +168,6 @@ test_*.py.bak
 pytest.ini.bak
 
 .playwright-mcp/
+
+docs/pr/
+.claude/
