@@ -3,11 +3,20 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.11.2"
-__version_info__ = (2, 11, 2)
+__version__ = "2.11.3"
+__version_info__ = (2, 11, 3)
 
 # Version history
 VERSION_HISTORY = {
+    "2.11.3": {
+        "date": "2025-12-13",
+        "features": [
+            "测试脚本审计与修复（移除失效测试文件）",
+            "修复test_ai_backend.py中应用名/动作名与初始化数据不一致问题",
+            "更新CLAUDE.md文档（模拟器数量、端口、应用列表）",
+            "更新tests/README.md移除legacy测试文件引用"
+        ]
+    },
     "2.11.2": {
         "date": "2025-12-13",
         "features": [

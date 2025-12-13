@@ -10,11 +10,7 @@ tests/
 ├── test_ai_backend.py         # 后端AI功能测试
 ├── test_mcp_client.py         # MCP客户端测试
 ├── run_all_tests.py           # 运行所有测试的脚本
-├── README.md                  # 本文档
-└── (legacy tests)             # 旧测试文件，供参考
-    ├── simple_test.py
-    ├── test_e2e.py
-    └── test_product_endpoints.py
+└── README.md                  # 本文档
 ```
 
 ## 测试分类
@@ -450,5 +446,5 @@ python tests/test_admin_frontend.py
 
 ---
 
-**最后更新**: 2025-01-17
-**测试套件版本**: v1.0.0
+**最后更新**: 2025-12-13
+**测试套件版本**: v1.1.0
