@@ -120,7 +120,7 @@ class PromptTemplate(Base):
 
 #### 1. 用户请求
 ```http
-POST http://127.0.0.1:8080/Scanner/BBScan?token=xxx
+POST http://127.0.0.1:9090/Scanner/BBScan?token=xxx
 Content-Type: application/json
 
 {

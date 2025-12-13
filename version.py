@@ -3,11 +3,19 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.12.0"
-__version_info__ = (2, 12, 0)
+__version__ = "2.12.1"
+__version_info__ = (2, 12, 1)
 
 # Version history
 VERSION_HISTORY = {
+    "2.12.1": {
+        "date": "2025-12-13",
+        "features": [
+            "文档端口号统一更新（8080→9090, 8081→9091）",
+            "更新架构文档LLMConfig模型（添加name、is_active字段说明）",
+            "更新SVG架构图端口号"
+        ]
+    },
     "2.12.0": {
         "date": "2025-12-13",
         "features": [

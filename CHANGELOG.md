@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.1] - 2025-12-13
+
+### Changed
+- Unified port numbers in documentation (8080→9090, 8081→9091)
+- Updated architecture documentation with LLMConfig model changes (added name, is_active fields)
+- Updated SVG architecture diagram port numbers
+
 ## [2.12.0] - 2025-12-13
 
 ### Added
