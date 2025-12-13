@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.0] - 2025-12-13
+
+### Added
+- Audit logs page infinite scroll lazy loading
+  - Default 20 logs per page, auto-load more when scrolling to bottom
+  - Loading indicator and "all loaded" status display
+  - Total log count display in header
+- One-click clear all logs feature
+  - Confirmation dialog to prevent accidental deletion
+  - Shows deleted count after clearing
+- Filter logs by application
+  - Dropdown selector to filter logs by specific app
+  - Supports lazy loading with filter applied
+
 ## [2.11.2] - 2025-12-13
 
 ### Added

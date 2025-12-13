@@ -42,7 +42,15 @@
 
     <div class="container mt-3">
         <div class="card">
-            <div class="card-header">操作日志</div>
+            <div class="card-header d-flex" style="justify-content: space-between; align-items: center;">
+                <span>操作日志 <span id="logCount" class="text-muted" style="font-size: 0.85em;"></span></span>
+                <div class="d-flex gap-2" style="align-items: center;">
+                    <select id="appFilter" class="form-control" style="width: 200px;" onchange="onAppFilterChange()">
+                        <option value="">全部应用</option>
+                    </select>
+                    <button class="btn btn-danger btn-sm" onclick="confirmClearLogs()">清除所有日志</button>
+                </div>
+            </div>
             <table class="table">
                 <thead>
                     <tr>
@@ -58,6 +66,30 @@
                     <!-- 动态加载 -->
                 </tbody>
             </table>
+            <!-- 加载状态 -->
+            <div id="loadingIndicator" class="text-center p-3" style="display: none;">
+                <span class="text-muted">加载中...</span>
+            </div>
+            <div id="noMoreLogs" class="text-center p-3" style="display: none;">
+                <span class="text-muted">已加载全部日志</span>
+            </div>
+            <div id="emptyLogs" class="text-center p-3" style="display: none;">
+                <span class="text-muted">暂无日志记录</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 确认清除对话框 -->
+    <div id="clearLogsModal" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title">确认清除</h3>
+            </div>
+            <p style="margin: 1rem 0;">确定要清除所有操作日志吗？此操作不可恢复。</p>
+            <div class="d-flex gap-2" style="justify-content: flex-end;">
+                <button type="button" class="btn btn-secondary" onclick="closeClearLogsModal()">取消</button>
+                <button type="button" class="btn btn-danger" onclick="clearAllLogs()">确认清除</button>
+            </div>
         </div>
     </div>
 
@@ -114,6 +146,13 @@
         let parametersEditor = null;
         let responseEditor = null;
 
+        // 懒加载状态
+        let currentPage = 1;
+        let isLoading = false;
+        let hasMore = true;
+        let totalLogs = 0;
+        let currentAppFilter = '';  // 当前选中的应用ID
+
         // 初始化 Monaco Editor
         function initMonacoEditors() {
             require.config({ paths: { vs: '/static/js/monaco-editor/vs' } });
@@ -148,14 +187,75 @@
             });
         }
 
-        async function loadLogs() {
+        // 加载应用列表（用于筛选下拉框）
+        async function loadApps() {
             try {
-                const response = await fetch('/admin/api/logs');
-                currentLogs = await response.json();
-                const tbody = document.getElementById('logsList');
+                const response = await fetch('/admin/api/apps');
+                const apps = await response.json();
+                const select = document.getElementById('appFilter');
 
-                tbody.innerHTML = currentLogs.map((log, index) => `
-                    <tr class="log-row" onclick="showLogDetail(${index})">
+                // 按 display_name 排序
+                apps.sort((a, b) => a.display_name.localeCompare(b.display_name));
+
+                apps.forEach(app => {
+                    const option = document.createElement('option');
+                    option.value = app.id;
+                    option.textContent = app.display_name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Failed to load apps:', error);
+            }
+        }
+
+        // 应用筛选变化
+        function onAppFilterChange() {
+            currentAppFilter = document.getElementById('appFilter').value;
+            loadLogs(true);
+        }
+
+        async function loadLogs(reset = false) {
+            if (isLoading) return;
+            if (!reset && !hasMore) return;
+
+            if (reset) {
+                currentPage = 1;
+                currentLogs = [];
+                hasMore = true;
+                document.getElementById('logsList').innerHTML = '';
+                document.getElementById('noMoreLogs').style.display = 'none';
+                document.getElementById('emptyLogs').style.display = 'none';
+            }
+
+            isLoading = true;
+            document.getElementById('loadingIndicator').style.display = 'block';
+
+            try {
+                let url = `/admin/api/logs?page=${currentPage}`;
+                if (currentAppFilter) {
+                    url += `&app_id=${currentAppFilter}`;
+                }
+                const response = await fetch(url);
+                const data = await response.json();
+
+                totalLogs = data.total;
+                hasMore = data.hasMore;
+
+                // 更新日志计数
+                document.getElementById('logCount').textContent = `(共 ${totalLogs} 条)`;
+
+                if (data.logs.length === 0 && currentPage === 1) {
+                    document.getElementById('emptyLogs').style.display = 'block';
+                    return;
+                }
+
+                // 追加日志到列表
+                const tbody = document.getElementById('logsList');
+                const startIndex = currentLogs.length;
+                currentLogs = currentLogs.concat(data.logs);
+
+                const newRows = data.logs.map((log, i) => `
+                    <tr class="log-row" onclick="showLogDetail(${startIndex + i})">
                         <td>${new Date(log.timestamp).toLocaleString()}</td>
                         <td>${log.app_name}</td>
                         <td>${log.action}</td>
@@ -164,8 +264,19 @@
                         <td>${log.ip_address || 'N/A'}</td>
                     </tr>
                 `).join('');
+                tbody.insertAdjacentHTML('beforeend', newRows);
+
+                currentPage++;
+
+                // 显示"已加载全部"
+                if (!hasMore) {
+                    document.getElementById('noMoreLogs').style.display = 'block';
+                }
             } catch (error) {
                 console.error('Failed to load logs:', error);
+            } finally {
+                isLoading = false;
+                document.getElementById('loadingIndicator').style.display = 'none';
             }
         }
 
@@ -206,11 +317,55 @@
             modal.style.display = 'none';
         }
 
+        // 清除日志相关
+        function confirmClearLogs() {
+            const modal = document.getElementById('clearLogsModal');
+            modal.classList.add('show');
+            modal.style.display = 'flex';
+        }
+
+        function closeClearLogsModal() {
+            const modal = document.getElementById('clearLogsModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+        }
+
+        async function clearAllLogs() {
+            try {
+                const response = await fetch('/admin/api/logs', { method: 'DELETE' });
+                const data = await response.json();
+                if (data.success) {
+                    closeClearLogsModal();
+                    loadLogs(true); // 重新加载
+                    alert(`已清除 ${data.deleted_count} 条日志`);
+                }
+            } catch (error) {
+                console.error('Failed to clear logs:', error);
+                alert('清除日志失败');
+            }
+        }
+
+        // 滚动监听 - 懒加载
+        function handleScroll() {
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight;
+            const clientHeight = window.innerHeight;
+
+            // 距离底部 200px 时加载更多
+            if (scrollTop + clientHeight >= scrollHeight - 200) {
+                loadLogs();
+            }
+        }
+
         // 点击 modal 外部区域关闭
         window.onclick = function(event) {
-            const modal = document.getElementById('logDetailModal');
-            if (event.target === modal) {
+            const logDetailModal = document.getElementById('logDetailModal');
+            const clearLogsModal = document.getElementById('clearLogsModal');
+            if (event.target === logDetailModal) {
                 closeLogDetailModal();
+            }
+            if (event.target === clearLogsModal) {
+                closeClearLogsModal();
             }
         }
 
@@ -218,14 +373,16 @@
         document.addEventListener('keydown', function(event) {
             if (event.key === 'Escape') {
                 closeLogDetailModal();
+                closeClearLogsModal();
             }
         });
 
         // 页面加载完成后初始化
         window.addEventListener('load', function() {
             initMonacoEditors();
-            loadLogs();
-            setInterval(loadLogs, 30000); // 自动刷新，每30秒
+            loadApps();  // 加载应用列表
+            loadLogs(true);
+            window.addEventListener('scroll', handleScroll);
         });
     </script>
 </body>
