@@ -13,8 +13,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 UniMCPSim/
 ├── Core Services
-│   ├── mcp_server.py        # Main MCP server (FastMCP-based, port 8080)
-│   ├── admin_server.py      # Web admin interface (Flask-based, port 8081)
+│   ├── mcp_server.py        # Main MCP server (FastMCP-based, port 9090)
+│   ├── admin_server.py      # Web admin interface (Flask-based, port 9091)
 │   ├── start_servers.py     # Service launcher script
 │   └── ai_generator.py      # OpenAI integration for response generation
 │
@@ -41,7 +41,7 @@ UniMCPSim/
 │       └── js/            # Monaco editor
 │
 ├── Initialization & Utilities
-│   ├── init_simulators.py   # Initialize default simulators (9 products)
+│   ├── init_simulators.py   # Initialize default simulators (10 products)
 │   └── reset_admin_password.py # Password reset utility
 │
 ├── Documentation
@@ -51,15 +51,17 @@ UniMCPSim/
 │
 └── Tests
     └── tests/
-        ├── simple_test.py  # Core functionality tests
-        └── test_e2e.py     # End-to-end tests
+        ├── test_admin_frontend.py  # Admin frontend tests
+        ├── test_ai_backend.py      # AI backend tests
+        ├── test_mcp_client.py      # MCP client tests
+        └── run_all_tests.py        # Test runner
 ```
 
 ### Project Architecture
 
 - **Purpose**: General-purpose MCP simulator for multiple products
-- **MCP Server** (port 8080): Simulates 9 pre-configured products
-- **Admin Server** (port 8081): Web management interface with modern UI
+- **MCP Server** (port 9090): Simulates 10 pre-configured products
+- **Admin Server** (port 9091): Web management interface with modern UI
 - **AI Integration**: Uses OpenAI API for intelligent response generation
 
 ## Key Technical Details
@@ -74,12 +76,15 @@ UniMCPSim/
 - **API Access**: Token-based (`?token=xxxx` in URL)
 - **Default Admin**: admin / admin123
 
-### Pre-configured Simulators (9 Products)
-1. **Security**: VirusTotal, ThreatBook (微步在线), QingTengHIDS (青藤云)
-2. **Communication**: WeChat Work (企业微信), Tencent Meeting (腾讯会议)
-3. **Ticketing**: Jira
-4. **Network**: Huawei Switch, Cisco Router
-5. **Firewall**: Sangfor (深信服)
+### Pre-configured Simulators (10 Products)
+1. **HIDS**: QingTengYun-HIDS (青藤云HIDS)
+2. **Meeting**: TencentMeeting (腾讯会议)
+3. **Ticketing**: Jira (工单系统)
+4. **Network**: HuaweiSwitch (华为交换机), Cisco3750 (思科交换机)
+5. **IT**: LDAP (Windows AD), CMDB (资产管理)
+6. **Firewall**: USGFirewall (华为USG防火墙)
+7. **ThreatIntelligence**: Threatbook (微步在线威胁情报)
+8. **IM**: WeWork (腾讯企业微信)
 
 ### AI Response Generation
 - **Provider**: OpenAI API (GPT-4o-mini by default)
@@ -132,14 +137,13 @@ ADMIN_SERVER_PORT=9091
 
 ### Testing
 ```bash
-# Core functionality test
-python tests/simple_test.py
+# Run all tests (recommended)
+python tests/run_all_tests.py
 
-# End-to-end test
-python tests/test_e2e.py
-
-# Product endpoints test
-python tests/test_product_endpoints.py
+# Or run individual tests
+python tests/test_admin_frontend.py   # Admin UI tests
+python tests/test_ai_backend.py       # AI backend tests
+python tests/test_mcp_client.py       # MCP client tests
 ```
 
 ### Admin Operations
@@ -159,8 +163,8 @@ python reset_admin_password.py
 #### Product-Specific Endpoints
 - **Format**: `http://localhost:9090/{Category}/{Product}?token={token}`
 - **Examples**:
-  - `/IM/WeChat?token=xxx` - WeChat Work API
-  - `/Security/VirusTotal?token=xxx` - VirusTotal API
+  - `/IM/WeWork?token=xxx` - WeChat Work API
+  - `/ThreatIntelligence/Threatbook?token=xxx` - ThreatBook API
   - `/Network/HuaweiSwitch?token=xxx` - Huawei Switch API
 
 #### MCP Protocol Methods
@@ -188,11 +192,11 @@ python reset_admin_password.py
 ```json
 {
   "mcpServers": {
-    "unimcpsim-wechat": {
+    "unimcpsim-wework": {
       "type": "http",
       "name": "企业微信模拟器",
       "description": "WeChat Work API Simulator",
-      "url": "http://127.0.0.1:9090/IM/WeChat?token=your-token-here"
+      "url": "http://127.0.0.1:9090/IM/WeWork?token=your-token-here"
     }
   }
 }
@@ -306,8 +310,8 @@ Edit `ai_generator.py` to modify response generation templates.
 ## Testing Checklist
 
 When testing changes:
-1. ✅ Core functionality test passes (`tests/simple_test.py`)
-2. ✅ All 9 simulators respond correctly
+1. ✅ All tests pass (`python tests/run_all_tests.py`)
+2. ✅ All 10 simulators respond correctly
 3. ✅ Token authentication works
 4. ✅ Admin panel loads without errors
 5. ✅ New apps can be created via UI
@@ -395,7 +399,7 @@ LOG_LEVEL=INFO
 
 ## Project Status
 
-Current Version: **v2.6.0**
+Current Version: **v2.11.3**
 - ✅ Core MCP simulator fully functional
 - ✅ Pre-configured product simulators
 - ✅ AI-enhanced response generation
@@ -418,9 +422,9 @@ curl "http://localhost:9090/health"
 
 # Test with demo token (get from admin panel)
 TOKEN="your-demo-token"
-curl "http://localhost:9090/IM/WeChat?token=$TOKEN" \
+curl "http://localhost:9090/IM/WeWork?token=$TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"action": "send_message", "parameters": {"to_user": "test", "text": "Hello"}}'
+  -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
 ```
 
 ## Support & Debugging

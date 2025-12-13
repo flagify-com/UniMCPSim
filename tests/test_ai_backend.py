@@ -145,30 +145,30 @@ class AIBackendTester:
         try:
             # 准备应用信息
             app_info = {
-                'category': 'Security',
-                'name': 'ThreatBook',
+                'category': 'ThreatIntelligence',
+                'name': 'Threatbook',
                 'display_name': '微步在线威胁情报',
                 'description': '提供IP、域名、文件等威胁情报查询',
                 'ai_notes': '返回的数据应该包含威胁评分、标签、详细信息等'
             }
 
             # 准备调用参数
-            action = 'query_ip_reputation'
+            action = 'query_ip_threat_intel'
             parameters = {
-                'ip': '192.168.1.100'
+                'ip_address': '192.168.1.100'
             }
 
             # 准备动作定义
             action_def = {
-                'name': 'query_ip_reputation',
-                'display_name': '查询IP信誉度',
-                'description': '查询指定IP地址的威胁情报和信誉度',
+                'name': 'query_ip_threat_intel',
+                'display_name': '查询IP威胁情报信息',
+                'description': '查询指定IP地址的威胁情报信息，包括信誉度、威胁标签、地理位置、网络运营商等基础情报数据',
                 'parameters': [
                     {
-                        'key': 'ip',
+                        'key': 'ip_address',
                         'type': 'String',
                         'required': True,
-                        'description': 'IP地址'
+                        'description': '需要查询的IP地址（IPv4/IPv6格式）'
                     }
                 ]
             }
@@ -210,34 +210,33 @@ class AIBackendTester:
         try:
             app_info = {
                 'category': 'IM',
-                'name': 'WeChat',
-                'display_name': '企业微信',
-                'description': '企业微信消息通知接口',
+                'name': 'WeWork',
+                'display_name': '腾讯企业微信',
+                'description': '企业微信IM工具，支持向群机器人推送消息，支持纯文本和Markdown',
                 'ai_notes': '返回消息ID和发送状态'
             }
 
-            action = 'send_text_message'
+            action = 'send_plain_text_message'
             parameters = {
-                'to_user': 'user123',
-                'content': '这是一条测试消息'
+                'message_content': '这是一条测试消息'
             }
 
             action_def = {
-                'name': 'send_text_message',
-                'display_name': '发送文本消息',
-                'description': '向指定用户发送文本消息',
+                'name': 'send_plain_text_message',
+                'display_name': '发送纯文本消息',
+                'description': '通过企业微信群机器人接口向指定群聊发送纯文本格式的消息内容，适用于日常通知或简单信息推送',
                 'parameters': [
                     {
-                        'key': 'to_user',
+                        'key': 'message_content',
                         'type': 'String',
                         'required': True,
-                        'description': '接收用户ID'
+                        'description': '需要发送的纯文本消息内容，最大长度2048字符'
                     },
                     {
-                        'key': 'content',
+                        'key': 'chat_id',
                         'type': 'String',
-                        'required': True,
-                        'description': '消息内容'
+                        'required': False,
+                        'description': '目标群机器人的chat_id，不填写时使用默认配置的机器人'
                     }
                 ]
             }
