@@ -82,13 +82,13 @@ UniMCPSim采用分层架构设计，清晰划分各组件职责，确保系统�
 - **外部系统**: 支持CI/CD集成和自动化流程
 
 #### 2. **应用层 (Application Layer)**
-- **MCP服务器** (`mcp_server.py`, 端口8080)
+- **MCP服务器** (`mcp_server.py`, 端口9090)
   - 基于FastMCP框架实现标准MCP协议
   - 支持动态工具注册和调用
   - 实现Token认证机制
   - 提供RESTful API接口
 
-- **管理服务器** (`admin_server.py`, 端口8081)
+- **管理服务器** (`admin_server.py`, 端口9091)
   - 基于Flask框架构建
   - 提供Web管理界面
   - 用户认证和会话管理
@@ -252,10 +252,10 @@ python start_servers.py
 
 #### 方式二：分别启动
 ```bash
-# 启动MCP服务器（端口8080）
+# 启动MCP服务器（端口9090）
 python mcp_server.py
 
-# 启动Web管理后台（端口8081）
+# 启动Web管理后台（端口9091）
 python admin_server.py
 ```
 
@@ -271,8 +271,8 @@ UniMCPSim - Universal MCP Simulator
 启动服务...
 服务已启动:
 ----------------------------------------------------------
-MCP服务器: http://localhost:8080
-管理后台: http://localhost:8081/admin/
+MCP服务器: http://localhost:9090
+管理后台: http://localhost:9091/admin/
 默认账号: admin / admin123
 ----------------------------------------------------------
 
@@ -283,8 +283,8 @@ MCP服务器: http://localhost:8080
 
 启动成功后，可以访问以下服务：
 
-- **MCP服务器**: http://localhost:8080
-- **Web管理后台**: http://localhost:8081/admin/
+- **MCP服务器**: http://localhost:9090
+- **Web管理后台**: http://localhost:9091/admin/
 - **默认管理员账号**:
   - 用户名: `admin`
   - 密码: `admin123`
@@ -343,7 +343,7 @@ UniMCPSim 核心功能测试
 
 ### 2. Web管理后台验证
 
-浏览器访问：http://localhost:8081/admin/
+浏览器访问：http://localhost:9091/admin/
 
 - 用户名：`admin`
 - 密码：`admin123`
@@ -358,7 +358,7 @@ UniMCPSim 核心功能测试
 
 ```bash
 # 获取Demo Token - 方法1：从管理后台复制
-# 访问 http://localhost:8081/admin/tokens 复制Demo Token
+# 访问 http://localhost:9091/admin/tokens 复制Demo Token
 
 # 获取Demo Token - 方法2：使用脚本
 TOKEN=$(python -c "
@@ -375,7 +375,7 @@ finally:
 ")
 
 # 测试企业微信发送消息
-curl "http://localhost:8080/IM/WeChat?token=$TOKEN" \
+curl "http://localhost:9090/IM/WeChat?token=$TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "action": "send_text_message",
@@ -412,7 +412,7 @@ curl "http://localhost:8080/IM/WeChat?token=$TOKEN" \
 TOKEN="demo-token-here"
 
 # 直接调用企业微信API端点
-curl "http://localhost:8080/IM/WeChat?token=$TOKEN" \
+curl "http://localhost:9090/IM/WeChat?token=$TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "action": "send_text_message",
@@ -427,7 +427,7 @@ curl "http://localhost:8080/IM/WeChat?token=$TOKEN" \
 
 **VirusTotal IP扫描**
 ```bash
-curl "http://localhost:8080/Security/VirusTotal?token=$TOKEN" \
+curl "http://localhost:9090/Security/VirusTotal?token=$TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "action": "scan_ip",
@@ -439,7 +439,7 @@ curl "http://localhost:8080/Security/VirusTotal?token=$TOKEN" \
 
 **Jira创建工单**
 ```bash
-curl "http://localhost:8080/Ticket/Jira?token=$TOKEN" \
+curl "http://localhost:9090/Ticket/Jira?token=$TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "action": "create_issue",
@@ -455,7 +455,7 @@ curl "http://localhost:8080/Ticket/Jira?token=$TOKEN" \
 
 **深信服防火墙封禁IP**
 ```bash
-curl "http://localhost:8080/Firewall/Sangfor?token=$TOKEN" \
+curl "http://localhost:9090/Firewall/Sangfor?token=$TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "action": "block_ip_address",
@@ -485,13 +485,13 @@ UniMCPSim 完美支持 Cherry Studio 等 MCP 客户端，以下是详细的集�
 
 配置参数：
 - **服务器名称**: UniMCPSim
-- **服务器地址**: `http://localhost:8080/{Category}/{Product}?token={your-token}`
+- **服务器地址**: `http://localhost:9090/{Category}/{Product}?token={your-token}`
 - **协议**: HTTP
 - **认证**: Token认证
 
 示例配置：
-- 企业微信: `http://localhost:8080/IM/WeChat?token=your-demo-token`
-- 威胁情报: `http://localhost:8080/Security/VirusTotal?token=your-demo-token`
+- 企业微信: `http://localhost:9090/IM/WeChat?token=your-demo-token`
+- 威胁情报: `http://localhost:9090/Security/VirusTotal?token=your-demo-token`
 
 #### 3. 查看可用工具列表
 
@@ -563,7 +563,7 @@ UniMCPSim v2.9.0 新增 MCP Playground 功能，无需外部客户端即可直�
 ### Web管理界面功能
 
 1. **登录系统**
-   - 访问 http://localhost:8081/admin/
+   - 访问 http://localhost:9091/admin/
    - 使用默认账号登录（admin / admin123）
 
 2. **仪表板**
@@ -635,7 +635,7 @@ UniMCPSim v2.9.0 新增 MCP Playground 功能，无需外部客户端即可直�
 
 #### 通过Web管理界面添加（推荐）
 
-1. 访问 http://localhost:8081/admin/
+1. 访问 http://localhost:9091/admin/
 2. 登录管理后台
 3. 进入"应用管理"页面
 4. 点击"创建新应用"按钮
@@ -672,7 +672,7 @@ UniMCPSim v2.9.0 新增 MCP Playground 功能，无需外部客户端即可直�
 
 创建完成后，即可通过以下URL访问：
 ```
-http://localhost:8080/{Category}/{ProductName}?token=<your-token>
+http://localhost:9090/{Category}/{ProductName}?token=<your-token>
 ```
 
 ## 🎯 MCP协议详细使用说明
@@ -681,19 +681,19 @@ http://localhost:8080/{Category}/{ProductName}?token=<your-token>
 
 #### 产品特定端点（推荐）
 
-**URL格式**: `http://localhost:8080/<Category>/<Product>?token=<your-token>`
+**URL格式**: `http://localhost:9090/<Category>/<Product>?token=<your-token>`
 
 **示例端点**:
-- 企业微信: `http://localhost:8080/IM/WeChat?token=<your-token>`
-- 华为交换机: `http://localhost:8080/Network/HuaweiSwitch?token=<your-token>`
-- 深信服防火墙: `http://localhost:8080/Firewall/Sangfor?token=<your-token>`
+- 企业微信: `http://localhost:9090/IM/WeChat?token=<your-token>`
+- 华为交换机: `http://localhost:9090/Network/HuaweiSwitch?token=<your-token>`
+- 深信服防火墙: `http://localhost:9090/Firewall/Sangfor?token=<your-token>`
 
 ### 完整MCP使用示例
 
 #### 步骤1：初始化MCP连接
 
 ```bash
-curl -X POST "http://localhost:8080/IM/WeChat?token=f1bb3770-6e46-4fe6-b518-e1c738c7b6a4" \
+curl -X POST "http://localhost:9090/IM/WeChat?token=f1bb3770-6e46-4fe6-b518-e1c738c7b6a4" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{
@@ -745,7 +745,7 @@ echo "会话ID: $session_id"
 
 ```bash
 # 使用提取的会话ID
-curl -X POST "http://localhost:8080/IM/WeChat?token=f1bb3770-6e46-4fe6-b518-e1c738c7b6a4" \
+curl -X POST "http://localhost:9090/IM/WeChat?token=f1bb3770-6e46-4fe6-b518-e1c738c7b6a4" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -H "mcp-session-id: $session_id" \
@@ -777,7 +777,7 @@ import httpx
 import json
 
 class UniMCPSimClient:
-    def __init__(self, base_url="http://localhost:8080", token=None, product_path=None):
+    def __init__(self, base_url="http://localhost:9090", token=None, product_path=None):
         self.base_url = base_url
         self.token = token
         self.product_path = product_path  # 例如: "IM/WeChat"
@@ -915,7 +915,7 @@ python tests/test_e2e.py
 #!/bin/bash
 
 # 设置变量
-MCP_SERVER="http://localhost:8080/IM/WeChat"
+MCP_SERVER="http://localhost:9090/IM/WeChat"
 TOKEN="f1bb3770-6e46-4fe6-b518-e1c738c7b6a4"
 
 echo "=== UniMCPSim 企业微信测试 ==="
@@ -998,8 +998,8 @@ chmod +x test_wechat.sh
 1. **端口被占用**
 ```bash
 # 检查端口占用
-lsof -i :8080
-lsof -i :8081
+lsof -i :9090
+lsof -i :9091
 
 # 杀死占用进程
 kill -9 <PID>
@@ -1066,7 +1066,7 @@ python mcp_server.py
 
 ```bash
 # 通过Web管理后台
-curl "http://localhost:8081/admin/api/tokens" -H "Authorization: Bearer <session>"
+curl "http://localhost:9091/admin/api/tokens" -H "Authorization: Bearer <session>"
 
 # 或直接查询数据库
 python -c "
@@ -1102,8 +1102,8 @@ python init_simulators.py
 看到以下输出表示系统运行正常：
 
 1. **服务启动成功**：
-   - MCP服务器运行在8080端口
-   - Web管理后台运行在8081端口
+   - MCP服务器运行在9090端口
+   - Web管理后台运行在9091端口
    - 无错误日志输出
 
 2. **功能测试通过**：

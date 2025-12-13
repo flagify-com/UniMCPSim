@@ -67,7 +67,7 @@
   <rect x="80" y="320" width="200" height="140" class="box"/>
   <text x="180" y="345" class="label" fill="#2c3e50">MCP 服务器</text>
   <text x="180" y="360" class="small-label" fill="#7f8c8d">mcp_server.py</text>
-  <text x="180" y="375" class="small-label" fill="#7f8c8d">端口: 8080</text>
+  <text x="180" y="375" class="small-label" fill="#7f8c8d">端口: 9090</text>
   <text x="120" y="395" class="small-label" fill="#7f8c8d">• FastMCP 框架</text>
   <text x="120" y="410" class="small-label" fill="#7f8c8d">• MCP 协议支持</text>
   <text x="120" y="425" class="small-label" fill="#7f8c8d">• 动态工具生成</text>
@@ -77,7 +77,7 @@
   <rect x="320" y="320" width="200" height="140" class="box"/>
   <text x="420" y="345" class="label" fill="#2c3e50">管理服务器</text>
   <text x="420" y="360" class="small-label" fill="#7f8c8d">admin_server.py</text>
-  <text x="420" y="375" class="small-label" fill="#7f8c8d">端口: 8081</text>
+  <text x="420" y="375" class="small-label" fill="#7f8c8d">端口: 9091</text>
   <text x="360" y="395" class="small-label" fill="#7f8c8d">• Flask 框架</text>
   <text x="360" y="410" class="small-label" fill="#7f8c8d">• Web 管理界面</text>
   <text x="360" y="425" class="small-label" fill="#7f8c8d">• 用户认证</text>
