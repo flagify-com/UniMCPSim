@@ -233,6 +233,13 @@ body {
     font-size: 0.875rem;
 }
 
+.btn:disabled,
+.btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* Table Styles */
 .table {
     width: 100%;

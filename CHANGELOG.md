@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.2] - 2025-12-13
+
+### Added
+- Playground support for DeepSeek R1 and other reasoning models
+  - Preserve `reasoning_content` field in conversation history
+  - Required for multi-turn conversations with DeepSeek-reasoner
+- Playground hot config switching (real-time LLM config reload)
+
+### Fixed
+- Chinese IME (Input Method Editor) Enter key triggering message send
+  - Now correctly uses `isComposing` check to avoid premature send during character selection
+- Increased `max_tokens` from 1000 to 4096 to reduce response truncation
+
+## [2.11.1] - 2025-12-13
+
+### Fixed
+- Button disabled state now has visual feedback (opacity, cursor change)
+- "Test Connection" button in LLM config page shows disabled state during testing
+- "Auto Generate Actions" button in apps page shows disabled state during AI generation
+- Fixed AI generate button not re-enabled after successful generation
+
 ## [2.11.0] - 2025-12-12
 
 ### Added
@@ -260,7 +281,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SQLite database with SQLAlchemy ORM
 - Comprehensive test coverage
 
-[Unreleased]: https://github.com/flagify-com/UniMCPSim/compare/v2.11.0...HEAD
+[Unreleased]: https://github.com/flagify-com/UniMCPSim/compare/v2.11.2...HEAD
+[2.11.2]: https://github.com/flagify-com/UniMCPSim/compare/v2.11.1...v2.11.2
+[2.11.1]: https://github.com/flagify-com/UniMCPSim/compare/v2.11.0...v2.11.1
 [2.11.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.10.1...v2.11.0
 [2.10.1]: https://github.com/flagify-com/UniMCPSim/compare/v2.10.0...v2.10.1
 [2.10.0]: https://github.com/flagify-com/UniMCPSim/compare/v2.9.0...v2.10.0

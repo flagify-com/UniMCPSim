@@ -238,7 +238,7 @@ class AIResponseGenerator:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=0.7,
-                        max_tokens=1000,
+                        max_tokens=4096,
                         stream=True,
                         # 禁用thinking模式,防止思考过程影响JSON输出格式
                         extra_body={"enable_thinking": self.enable_thinking}
@@ -269,7 +269,7 @@ class AIResponseGenerator:
                             {"role": "user", "content": prompt}
                         ],
                         temperature=0.7,
-                        max_tokens=1000,
+                        max_tokens=4096,
                         # 禁用thinking模式,防止思考过程影响JSON输出格式
                         extra_body={"enable_thinking": self.enable_thinking}
                     )
