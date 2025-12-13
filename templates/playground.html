@@ -710,7 +710,8 @@
         const chatInput = document.getElementById('chatInput');
 
         chatInput.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            // 检查 isComposing 避免中文输入法选词时触发发送
+            if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
                 e.preventDefault();
                 sendMessage();
             }
