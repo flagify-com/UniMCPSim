@@ -399,7 +399,7 @@ LOG_LEVEL=INFO
 
 ## Project Status
 
-Current Version: **v2.12.0**
+Current Version: **v2.12.1**
 - ✅ Core MCP simulator fully functional
 - ✅ Pre-configured product simulators
 - ✅ AI-enhanced response generation
