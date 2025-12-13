@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.11.1] - 2025-12-13
+
+### Fixed
+- Button disabled state now has visual feedback (opacity, cursor change)
+- "Test Connection" button in LLM config page shows disabled state during testing
+- "Auto Generate Actions" button in apps page shows disabled state during AI generation
+- Fixed AI generate button not re-enabled after successful generation
+
 ## [2.11.0] - 2025-12-12
 
 ### Added

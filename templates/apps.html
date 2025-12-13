@@ -617,7 +617,7 @@
 
                     // 恢复按钮状态
                     button.textContent = originalText;
-                    // 保持按钮启用状态(蓝色)，因为提示词还在
+                    button.disabled = false;  // 保持按钮启用状态，因为提示词还在
                 } else {
                     showNotification('生成失败：' + result.error, 'error');
                     // 失败时也恢复按钮
