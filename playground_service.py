@@ -66,6 +66,9 @@ class PlaygroundService:
             self.api_base = db_config.api_base_url or 'https://api.openai.com/v1'
             self.model = db_config.model_name or 'gpt-4o-mini'
             self.enable_stream = db_config.enable_stream
+            self.enable_thinking = db_config.enable_thinking
+            self._config_id = db_config.id
+            self._config_updated_at = db_config.updated_at
         else:
             import os
             from dotenv import load_dotenv
@@ -74,6 +77,9 @@ class PlaygroundService:
             self.api_base = os.getenv('OPENAI_API_BASE_URL', 'https://api.openai.com/v1')
             self.model = os.getenv('OPENAI_MODEL', 'gpt-4o-mini')
             self.enable_stream = os.getenv('OPENAI_STREAM', 'false').lower() == 'true'
+            self.enable_thinking = os.getenv('OPENAI_ENABLE_THINKING', 'false').lower() == 'true'
+            self._config_id = None
+            self._config_updated_at = None
 
         if self.api_key:
             self.client = OpenAI(api_key=self.api_key, base_url=self.api_base)
@@ -81,6 +87,16 @@ class PlaygroundService:
         else:
             self.client = None
             self.enabled = False
+
+    def _check_and_reload_config(self):
+        """检查配置是否有更新，如有则重新加载"""
+        db_config = self.db_manager.get_llm_config()
+        if db_config:
+            if (db_config.id != self._config_id or
+                db_config.updated_at != self._config_updated_at):
+                self._load_llm_config()
+        elif self._config_id is not None:
+            self._load_llm_config()
 
     def reload_config(self):
         """重新加载配置"""
@@ -230,6 +246,9 @@ class PlaygroundService:
         Returns:
             对话结果
         """
+        # 检查配置是否有更新（支持配置热切换）
+        self._check_and_reload_config()
+
         if not self.enabled:
             return {
                 "success": False,
@@ -290,11 +309,18 @@ class PlaygroundService:
                             }
                         })
 
-                    messages.append({
+                    # 构建 assistant 消息
+                    assistant_msg = {
                         "role": "assistant",
                         "content": assistant_message.content,
                         "tool_calls": tool_calls_data
-                    })
+                    }
+
+                    # DeepSeek R1 等模型需要保留 reasoning_content 字段
+                    if hasattr(assistant_message, 'reasoning_content') and assistant_message.reasoning_content:
+                        assistant_msg["reasoning_content"] = assistant_message.reasoning_content
+
+                    messages.append(assistant_msg)
 
                     # 处理每个工具调用
                     for tool_call in assistant_message.tool_calls:
@@ -332,11 +358,18 @@ class PlaygroundService:
                     # 没有工具调用，返回最终响应
                     final_response = assistant_message.content or ""
 
-                    # 添加助手消息到历史
-                    session.conversation_history.append({
+                    # 构建助手消息
+                    history_msg = {
                         "role": "assistant",
                         "content": final_response
-                    })
+                    }
+
+                    # DeepSeek R1 等模型需要保留 reasoning_content 字段
+                    if hasattr(assistant_message, 'reasoning_content') and assistant_message.reasoning_content:
+                        history_msg["reasoning_content"] = assistant_message.reasoning_content
+
+                    # 添加助手消息到历史
+                    session.conversation_history.append(history_msg)
 
                     return {
                         "success": True,

@@ -3,11 +3,20 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.11.1"
-__version_info__ = (2, 11, 1)
+__version__ = "2.11.2"
+__version_info__ = (2, 11, 2)
 
 # Version history
 VERSION_HISTORY = {
+    "2.11.2": {
+        "date": "2025-12-13",
+        "features": [
+            "Playground支持DeepSeek R1等推理模型(reasoning_content)",
+            "Playground配置热切换（实时切换LLM配置无需重启）",
+            "修复中文输入法回车选词触发发送的问题",
+            "增加max_tokens到4096，减少响应截断"
+        ]
+    },
     "2.11.1": {
         "date": "2025-12-13",
         "features": [
