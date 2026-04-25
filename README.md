@@ -328,6 +328,58 @@ docker run -d --name unimcpsim \
   ghcr.io/flagify-com/unimcpsim:latest
 ```
 
+也可以使用指定提交对应的镜像标签，便于在生产环境锁定版本：
+
+```bash
+docker pull ghcr.io/flagify-com/unimcpsim:sha-8ff8e19
+```
+
+> 注意：GitHub Packages 的网页详情页可能因登录状态、组织权限或包权限配置显示 404；部署时以 `docker pull ghcr.io/flagify-com/unimcpsim:<tag>` 为准。如果 `docker pull` 返回 `denied` / `unauthorized`，请检查 GHCR 包是否已设置为 Public；如果返回超时或 TLS 握手失败，通常是网络或企业出口未放行 GHCR 相关域名。
+
+### 企业内网离线交付
+
+客户环境不能直连 GitHub / GHCR 时，可以在可联网环境先拉取官方镜像并导出离线包：
+
+```bash
+docker pull ghcr.io/flagify-com/unimcpsim:sha-8ff8e19
+
+docker save ghcr.io/flagify-com/unimcpsim:sha-8ff8e19 \
+  | gzip > unimcpsim-sha-8ff8e19.tar.gz
+
+sha256sum unimcpsim-sha-8ff8e19.tar.gz > SHA256SUMS
+```
+
+将 `unimcpsim-sha-8ff8e19.tar.gz` 和 `SHA256SUMS` 传入内网后：
+
+```bash
+sha256sum -c SHA256SUMS
+gunzip -c unimcpsim-sha-8ff8e19.tar.gz | docker load
+
+docker tag ghcr.io/flagify-com/unimcpsim:sha-8ff8e19 unimcpsim:sha-8ff8e19
+```
+
+内网部署示例：
+
+```bash
+docker run -d --name unimcpsim \
+  --restart unless-stopped \
+  -p 9090:9090 \
+  -p 9091:9091 \
+  -v /opt/unimcpsim/data:/app/data \
+  -v /opt/unimcpsim/logs:/app/logs \
+  -e TZ=Asia/Shanghai \
+  unimcpsim:sha-8ff8e19
+```
+
+如果客户有 Harbor / Nexus / 私有 Docker Registry，建议将官方镜像同步到内网镜像仓库，再由客户服务器从内网仓库拉取：
+
+```bash
+docker tag ghcr.io/flagify-com/unimcpsim:sha-8ff8e19 \
+  harbor.example.com/security/unimcpsim:sha-8ff8e19
+
+docker push harbor.example.com/security/unimcpsim:sha-8ff8e19
+```
+
 ### 内网/国内环境构建
 
 Dockerfile 支持构建参数，可使用国内镜像源或复用已有基础镜像加速构建：
