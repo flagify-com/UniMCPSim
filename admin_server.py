@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 from flask_cors import CORS
 from dotenv import load_dotenv
+from sqlalchemy.exc import IntegrityError
 from models import db_manager, User, Token, Application, AppPermission, AuditLog, PromptTemplate
 from auth_utils import hash_password, verify_password, login_required, admin_required
 from version import get_version
@@ -174,6 +175,21 @@ def validate_app_name(name, field_name='名称'):
 
     return True, ''
 
+def validate_application_identity(session_db, category, name, current_app_id=None):
+    """Validate application path and database uniqueness constraints."""
+    existing_path = session_db.query(Application).filter_by(
+        category=category,
+        name=name
+    ).first()
+    if existing_path and existing_path.id != current_app_id:
+        return False, '应用已存在'
+
+    existing_name = session_db.query(Application).filter_by(name=name).first()
+    if existing_name and existing_name.id != current_app_id:
+        return False, '应用名称已存在，请使用唯一名称'
+
+    return True, ''
+
 @app.route('/admin/api/apps', methods=['POST'])
 @admin_required
 def create_app():
@@ -191,13 +207,10 @@ def create_app():
         if not valid:
             return jsonify({'error': error}), 400
 
-        # 检查是否已存在
-        existing = session_db.query(Application).filter_by(
-            category=data['category'],
-            name=data['name']
-        ).first()
-        if existing:
-            return jsonify({'error': '应用已存在'}), 400
+        # 检查是否已存在（与数据库唯一约束保持一致）
+        valid, error = validate_application_identity(session_db, data['category'], data['name'])
+        if not valid:
+            return jsonify({'error': error}), 400
 
         app = Application(
             name=data['name'],
@@ -208,7 +221,11 @@ def create_app():
             template=data.get('template', {})
         )
         session_db.add(app)
-        session_db.commit()
+        try:
+            session_db.commit()
+        except IntegrityError:
+            session_db.rollback()
+            return jsonify({'error': '应用名称已存在，请使用唯一名称'}), 400
         return jsonify({
             'id': app.id,
             'message': '应用创建成功!请前往"令牌管理"页面为相关Token绑定此应用的访问权限。'
@@ -297,8 +314,16 @@ def update_app(app_id):
             if 'display_name' in data:
                 app.display_name = data['display_name']
 
+        valid, error = validate_application_identity(session_db, app.category, app.name, app.id)
+        if not valid:
+            return jsonify({'error': error}), 400
+
         app.updated_at = datetime.now(timezone.utc)
-        session_db.commit()
+        try:
+            session_db.commit()
+        except IntegrityError:
+            session_db.rollback()
+            return jsonify({'error': '应用名称已存在，请使用唯一名称'}), 400
         return jsonify({'success': True})
     finally:
         session_db.close()
@@ -400,6 +425,8 @@ def import_apps():
                 if not valid:
                     raise ValueError(error)
 
+                name_conflict = session_db.query(Application).filter_by(name=app_data['name']).first()
+
                 # 检查是否已存在
                 existing = session_db.query(Application).filter_by(
                     category=app_data['category'],
@@ -416,6 +443,9 @@ def import_apps():
                     existing.updated_at = datetime.now(timezone.utc)
                     results['updated'] += 1
                 else:
+                    if name_conflict:
+                        raise ValueError('应用名称已存在，请使用唯一名称')
+
                     # 创建新应用
                     new_app = Application(
                         category=app_data['category'],
@@ -452,7 +482,7 @@ def import_apps():
         session_db.close()
 
 @app.route('/admin/api/tokens', methods=['GET'])
-@login_required
+@admin_required
 def get_tokens():
     """获取Token列表"""
     session_db = db_manager.get_session()
@@ -478,19 +508,35 @@ def get_tokens():
 @admin_required
 def create_token():
     """创建Token"""
-    data = request.json
+    data = request.get_json() or {}
     session_db = db_manager.get_session()
     try:
+        name = data.get('name', '').strip()
+        if not name:
+            return jsonify({'error': 'Token名称不能为空'}), 400
+
+        app_ids = data.get('app_ids', [])
+        if not isinstance(app_ids, list):
+            return jsonify({'error': 'app_ids必须是数组'}), 400
+        app_ids = list(dict.fromkeys(app_ids))
+
+        valid_app_ids = {
+            app.id for app in session_db.query(Application).filter(Application.id.in_(app_ids)).all()
+        } if app_ids else set()
+        invalid_app_ids = sorted(set(app_ids) - valid_app_ids)
+        if invalid_app_ids:
+            return jsonify({'error': f'应用不存在: {invalid_app_ids}'}), 400
+
         # 创建Token
         token = Token(
-            name=data['name'],
+            name=name,
             user_id=session['user_id']
         )
         session_db.add(token)
         session_db.flush()
 
         # 添加应用权限
-        for app_id in data.get('app_ids', []):
+        for app_id in app_ids:
             perm = AppPermission(token_id=token.id, application_id=app_id)
             session_db.add(perm)
 
@@ -535,11 +581,15 @@ def delete_token(token_id):
         session_db.close()
 
 @app.route('/admin/api/tokens/<int:token_id>/apps', methods=['GET'])
-@login_required
+@admin_required
 def get_token_apps(token_id):
     """获取Token授权的应用"""
     session_db = db_manager.get_session()
     try:
+        token = session_db.query(Token).filter_by(id=token_id).first()
+        if not token:
+            return jsonify({'error': 'Token不存在'}), 404
+
         apps = session_db.query(Application).join(AppPermission).filter(
             AppPermission.token_id == token_id
         ).all()
@@ -553,13 +603,27 @@ def get_token_apps(token_id):
         session_db.close()
 
 @app.route('/admin/api/tokens/<int:token_id>/apps', methods=['PUT'])
-@login_required
+@admin_required
 def update_token_apps(token_id):
     """更新Token授权的应用"""
     session_db = db_manager.get_session()
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         app_ids = data.get('app_ids', [])
+        if not isinstance(app_ids, list):
+            return jsonify({'error': 'app_ids必须是数组'}), 400
+        app_ids = list(dict.fromkeys(app_ids))
+
+        token = session_db.query(Token).filter_by(id=token_id).first()
+        if not token:
+            return jsonify({'error': 'Token不存在'}), 404
+
+        valid_app_ids = {
+            app.id for app in session_db.query(Application).filter(Application.id.in_(app_ids)).all()
+        } if app_ids else set()
+        invalid_app_ids = sorted(set(app_ids) - valid_app_ids)
+        if invalid_app_ids:
+            return jsonify({'error': f'应用不存在: {invalid_app_ids}'}), 400
 
         # 删除现有权限
         session_db.query(AppPermission).filter_by(token_id=token_id).delete()
@@ -894,7 +958,7 @@ def api_get_prompt(name):
         return jsonify({'error': str(e)}), 500
 
 @app.route('/admin/api/prompts', methods=['POST'])
-@login_required
+@admin_required
 def api_save_prompt():
     """保存提示词模板"""
     try:
@@ -930,7 +994,7 @@ def api_save_prompt():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/admin/api/prompts/<name>', methods=['DELETE'])
-@login_required
+@admin_required
 def api_delete_prompt(name):
     """删除提示词模板"""
     try:
@@ -1020,7 +1084,7 @@ def api_get_llm_config():
 
 
 @app.route('/admin/api/llm-config', methods=['POST'])
-@login_required
+@admin_required
 def api_save_llm_config():
     """保存大模型配置"""
     try:
@@ -1224,7 +1288,7 @@ def api_get_all_llm_configs():
 
 
 @app.route('/admin/api/llm-configs', methods=['POST'])
-@login_required
+@admin_required
 def api_create_llm_config():
     """创建新的大模型配置"""
     try:
@@ -1279,7 +1343,7 @@ def api_get_llm_config_by_id(config_id):
 
 
 @app.route('/admin/api/llm-configs/<int:config_id>', methods=['PUT'])
-@login_required
+@admin_required
 def api_update_llm_config_by_id(config_id):
     """更新指定ID的大模型配置"""
     try:
@@ -1329,7 +1393,7 @@ def api_update_llm_config_by_id(config_id):
 
 
 @app.route('/admin/api/llm-configs/<int:config_id>', methods=['DELETE'])
-@login_required
+@admin_required
 def api_delete_llm_config_by_id(config_id):
     """删除指定ID的大模型配置"""
     try:
@@ -1350,7 +1414,7 @@ def api_delete_llm_config_by_id(config_id):
 
 
 @app.route('/admin/api/llm-configs/<int:config_id>/activate', methods=['POST'])
-@login_required
+@admin_required
 def api_activate_llm_config(config_id):
     """启用指定的大模型配置"""
     try:

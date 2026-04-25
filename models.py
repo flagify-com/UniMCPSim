@@ -326,6 +326,8 @@ class DatabaseManager:
                 session.add(result)
 
             session.commit()
+            session.refresh(result)
+            session.expunge(result)
             return result
         finally:
             session.close()

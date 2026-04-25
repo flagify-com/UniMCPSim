@@ -3,11 +3,24 @@
 UniMCPSim Version Information
 """
 
-__version__ = "2.12.2"
-__version_info__ = (2, 12, 2)
+__version__ = "2.12.3"
+__version_info__ = (2, 12, 3)
 
 # Version history
 VERSION_HISTORY = {
+    "2.12.3": {
+        "date": "2026-04-25",
+        "features": [
+            "修复应用管理和Token管理页面潜在XSS渲染风险",
+            "修复提示词模板保存后SQLAlchemy对象脱离Session的问题",
+            "修复Token创建成功弹窗展示错误MCP连接地址的问题",
+            "增强Token权限更新校验，避免写入不存在的Token或应用权限",
+            "修复应用名称唯一性校验与数据库约束不一致导致的500错误",
+            "优化Docker镜像构建，支持可配置基础镜像和国内镜像源加速",
+            "Docker Compose默认挂载data/logs目录，实现SQLite数据库和日志持久化",
+            "新增GitHub Actions自动构建并发布GHCR镜像"
+        ]
+    },
     "2.12.2": {
         "date": "2025-12-13",
         "features": [

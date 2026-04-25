@@ -15,6 +15,7 @@ UniMCPSim是一个通用的MCP（Model Context Protocol）模拟器，可以动�
 - **Web管理界面**：提供完整的Web后台管理系统
 - **Token权限管理**：支持Token认证和细粒度权限控制
 - **模板驱动**：支持自定义提示词模板，快速创建新的应用模拟器
+- **容器化部署** (v2.12.3)：支持Docker Compose、SQLite数据卷持久化和GitHub Actions自动构建发布
 
 ## 📁 项目结构
 
@@ -271,7 +272,7 @@ UniMCPSim - Universal MCP Simulator
 启动服务...
 服务已启动:
 ----------------------------------------------------------
-MCP服务器: http://localhost:9090
+MCP服务器: http://localhost:9090/<Category>/<Product>?token=<token>
 管理后台: http://localhost:9091/admin/
 默认账号: admin / admin123
 ----------------------------------------------------------
@@ -288,6 +289,61 @@ MCP服务器: http://localhost:9090
 - **默认管理员账号**:
   - 用户名: `admin`
   - 密码: `admin123`
+
+## 🐳 Docker部署
+
+### 使用Docker Compose（推荐）
+
+```bash
+# 构建并启动
+docker compose up -d --build
+
+# 查看状态
+docker compose ps
+
+# 查看日志
+docker compose logs -f unimcpsim
+```
+
+默认会挂载以下目录，容器升级或重建不会丢失数据：
+
+```text
+./data  -> /app/data   # SQLite数据库
+./logs  -> /app/logs   # 运行日志
+```
+
+### 使用已发布镜像
+
+GitHub Actions 会在推送 `main` 或 `v*` 标签时构建并发布镜像到 GHCR：
+
+```bash
+docker pull ghcr.io/flagify-com/unimcpsim:latest
+docker run -d --name unimcpsim \
+  --restart unless-stopped \
+  -p 9090:9090 \
+  -p 9091:9091 \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  -e TZ=Asia/Shanghai \
+  ghcr.io/flagify-com/unimcpsim:latest
+```
+
+### 内网/国内环境构建
+
+Dockerfile 支持构建参数，可使用国内镜像源或复用已有基础镜像加速构建：
+
+```bash
+docker build \
+  --build-arg USE_CHINA_MIRRORS=true \
+  --build-arg PYTHON_IMAGE=python:3.11-slim \
+  -t unimcpsim:local .
+
+# 如果内网已有基础镜像，也可以复用：
+docker build \
+  --build-arg USE_CHINA_MIRRORS=true \
+  --build-arg PYTHON_IMAGE=deepsocx-backend:latest \
+  -t unimcpsim:local .
+```
 
 ## 🧪 功能验证测试
 

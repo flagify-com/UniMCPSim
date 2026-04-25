@@ -56,7 +56,7 @@ def main():
 
     print("\n服务已启动:")
     print("-" * 60)
-    print(f"MCP服务器: http://localhost:{mcp_port}/mcp")
+    print(f"MCP服务器: http://localhost:{mcp_port}/<Category>/<Product>?token=<token>")
     print(f"管理后台: http://localhost:{admin_port}/admin/")
     print("默认账号: admin / admin123")
     print("-" * 60)

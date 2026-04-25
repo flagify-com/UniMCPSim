@@ -338,12 +338,13 @@
                 error: '❌',
                 info: 'ℹ️'
             };
+            const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
 
             const notification = document.createElement('div');
             notification.className = `notification-toast ${type}`;
             notification.innerHTML = `
                 <span class="notification-icon">${icons[type] || icons.info}</span>
-                <div class="notification-content">${message}</div>
+                <div class="notification-content">${safeMessage}</div>
                 <button class="notification-close" onclick="this.parentElement.remove()">✕</button>
             `;
 
@@ -354,6 +355,14 @@
                 notification.style.animation = 'fadeOut 0.3s ease-out';
                 setTimeout(() => notification.remove(), 300);
             }, 5000);
+        }
+
+        // HTML转义
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            const div = document.createElement('div');
+            div.textContent = String(text);
+            return div.innerHTML;
         }
 
         // 初始化Monaco Editor
@@ -434,10 +443,10 @@
                 tbody.innerHTML = allApps.map(app => `
                     <tr>
                         <td>${app.id}</td>
-                        <td>${app.category}</td>
-                        <td><a href="javascript:void(0)" onclick="showAppDetails(${app.id})" style="color: var(--primary-100); text-decoration: none;">${app.name}</a></td>
-                        <td>${app.display_name}</td>
-                        <td>/${app.category}/${app.name}</td>
+                        <td>${escapeHtml(app.category)}</td>
+                        <td><a href="javascript:void(0)" onclick="showAppDetails(${app.id})" style="color: var(--primary-100); text-decoration: none;">${escapeHtml(app.name)}</a></td>
+                        <td>${escapeHtml(app.display_name)}</td>
+                        <td>/${escapeHtml(app.category)}/${escapeHtml(app.name)}</td>
                         <td>
                             <span class="badge ${app.enabled ? 'badge-success' : 'badge-danger'}">
                                 ${app.enabled ? '启用' : '禁用'}
@@ -775,17 +784,17 @@
                 const actions = app.template?.actions || [];
                 const actionsHtml = actions.length > 0 ? actions.map(action => `
                     <div class="card" style="margin-bottom: 1rem; background-color: var(--bg-100);">
-                        <h5 style="color: var(--primary-100);">${action.display_name || action.name}</h5>
-                        <p style="margin: 0.5rem 0;"><strong>动作名:</strong> <code>${action.name}</code></p>
-                        <p style="margin: 0.5rem 0;"><strong>描述:</strong> ${action.description || '无描述'}</p>
+                        <h5 style="color: var(--primary-100);">${escapeHtml(action.display_name || action.name)}</h5>
+                        <p style="margin: 0.5rem 0;"><strong>动作名:</strong> <code>${escapeHtml(action.name)}</code></p>
+                        <p style="margin: 0.5rem 0;"><strong>描述:</strong> ${escapeHtml(action.description || '无描述')}</p>
                         ${action.parameters && action.parameters.length > 0 ? `
                             <p style="margin: 0.5rem 0;"><strong>参数:</strong></p>
                             <ul style="margin: 0; padding-left: 1.5rem;">
                                 ${action.parameters.map(param => `
                                     <li>
-                                        <code>${param.key}</code> (${param.type})
+                                        <code>${escapeHtml(param.key)}</code> (${escapeHtml(param.type)})
                                         ${param.required ? '<span class="badge badge-danger" style="font-size: 0.75rem;">必填</span>' : ''}
-                                        - ${param.description || '无描述'}
+                                        - ${escapeHtml(param.description || '无描述')}
                                     </li>
                                 `).join('')}
                             </ul>
@@ -886,7 +895,7 @@
                 <div style="padding: 0.5rem; border-bottom: 1px solid var(--bg-300);">
                     <label style="display: flex; align-items: center; cursor: pointer;">
                         <input type="checkbox" class="export-checkbox" value="${app.id}" onchange="updateExportCount()" style="margin-right: 0.5rem;">
-                        <span><strong>${app.display_name}</strong> (${app.category}/${app.name})</span>
+                        <span><strong>${escapeHtml(app.display_name)}</strong> (${escapeHtml(app.category)}/${escapeHtml(app.name)})</span>
                     </label>
                 </div>
             `).join('');
@@ -1044,7 +1053,7 @@
                         <h4 style="color: var(--primary-100); margin-bottom: 0.5rem;">✅ 新建应用 (${newApps.length}个)</h4>
                         <ul style="margin: 0; padding-left: 1.5rem;">
                             ${newApps.map(app => `
-                                <li><strong>${app.display_name}</strong> (${app.category}/${app.name})</li>
+                                <li><strong>${escapeHtml(app.display_name)}</strong> (${escapeHtml(app.category)}/${escapeHtml(app.name)})</li>
                             `).join('')}
                         </ul>
                     </div>
@@ -1057,7 +1066,7 @@
                         <h4 style="color: #856404; margin-bottom: 0.5rem;">⚠️ 覆盖现有应用 (${updateApps.length}个)</h4>
                         <ul style="margin: 0; padding-left: 1.5rem; color: #856404;">
                             ${updateApps.map(app => `
-                                <li><strong>${app.display_name}</strong> (${app.category}/${app.name}) - ID: ${app.existingId}</li>
+                                <li><strong>${escapeHtml(app.display_name)}</strong> (${escapeHtml(app.category)}/${escapeHtml(app.name)}) - ID: ${app.existingId}</li>
                             `).join('')}
                         </ul>
                     </div>

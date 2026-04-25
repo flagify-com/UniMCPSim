@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.12.3] - 2026-04-25
+
+### 新增
+- 新增 GitHub Actions Docker 发布流程，支持推送 `main` 或 `v*` 标签时自动构建并发布 GHCR 镜像。
+- Dockerfile 支持 `PYTHON_IMAGE` 构建参数，内网环境可复用已有基础镜像（如 `deepsocx-backend:latest`）加速构建。
+- Dockerfile 支持 `USE_CHINA_MIRRORS=true`，用于启用国内 apt / PyPI 镜像源。
+
+### 变更
+- Docker Compose 默认挂载 `./data:/app/data` 和 `./logs:/app/logs`，SQLite 数据库和日志可随容器升级持久化。
+- Docker Compose 改为可选读取 `.env`，避免目标环境缺少 `.env` 时被 Docker 创建成目录。
+- Dockerfile 使用 OCI 镜像标签，并清空自定义基础镜像继承来的 ENTRYPOINT，避免复用基础镜像时启动错误服务。
+- 启动脚本中的 MCP 地址提示改为真实产品端点格式：`/<Category>/<Product>?token=<token>`。
+
+### 修复
+- 修复应用管理和 Token 管理页面中应用/动作元数据直接拼接 `innerHTML` 带来的潜在 XSS 风险。
+- 修复提示词模板保存后返回已脱离 Session 的 SQLAlchemy 对象，可能导致接口 500 的问题。
+- 修复 Token 创建成功弹窗展示不存在的 `/mcp?token=...` 连接地址的问题。
+- 修复 Token 权限更新缺少 Token / 应用 ID 校验，可能写入无效权限记录的问题。
+- 修复应用名称唯一性校验与数据库约束不一致，导致重复名称创建时返回 500 的问题。
+- 调整敏感管理写接口权限装饰器，和项目现有管理员操作语义保持一致。
+- `.dockerignore` 排除 `.env` / `.env.*`，避免本地密钥进入镜像构建上下文。
+
 ## [2.12.2] - 2025-12-13
 
 ### Fixed

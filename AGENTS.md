@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Codex (Codex.ai/code) when working with code in this repository.
 
 ## Project Overview
 
@@ -187,7 +187,7 @@ python reset_admin_password.py
 
 ## MCP Client Configuration
 
-### For Cherry Studio / Claude Desktop / Cline
+### For Cherry Studio / Codex Desktop / Cline
 
 ```json
 {
@@ -223,7 +223,7 @@ python reset_admin_password.py
 
 ### MCP Configuration Generator (New Feature)
 - **One-Click Generation**: "MCP配置" button generates standard MCP client config
-- **Format**: Compatible with Cherry Studio, Claude Desktop, and Cline
+- **Format**: Compatible with Cherry Studio, Codex Desktop, and Cline
 - **Token Placeholder**: Uses `YOUR_TOKEN_HERE` to remind users to fill in actual token
 - **Copy Function**: One-click copy to clipboard with reminder message
 
@@ -399,7 +399,7 @@ LOG_LEVEL=INFO
 
 ## Project Status
 
-Current Version: **v2.12.2**
+Current Version: **v2.12.1**
 - ✅ Core MCP simulator fully functional
 - ✅ Pre-configured product simulators
 - ✅ AI-enhanced response generation
@@ -409,7 +409,7 @@ Current Version: **v2.12.2**
 - ✅ Prompt template management
 - ✅ **LLM configuration via Web UI (NEW)**
 - ✅ **Database-first configuration strategy (NEW)**
-- ✅ Cherry Studio/Claude Desktop/Cline integration tested
+- ✅ Cherry Studio/Codex Desktop/Cline integration tested
 - ✅ Comprehensive test coverage
 
 See CHANGELOG.md for detailed feature history.

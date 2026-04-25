@@ -1,12 +1,16 @@
 # UniMCPSim Docker Image
-# OEM White-label Version
 
-FROM python:3.11-slim
+ARG PYTHON_IMAGE=python:3.11-slim
+FROM ${PYTHON_IMAGE}
+
+ARG VERSION=dev
+ARG USE_CHINA_MIRRORS=false
 
 # Set labels
-LABEL maintainer="UniMCPSim"
-LABEL version="2.10.0"
-LABEL description="Universal MCP Simulator - OEM Edition"
+LABEL org.opencontainers.image.title="UniMCPSim"
+LABEL org.opencontainers.image.description="Universal MCP Simulator"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.source="https://github.com/flagify-com/UniMCPSim"
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -19,9 +23,12 @@ ENV TZ=Asia/Shanghai
 # Set working directory
 WORKDIR /app
 
-# Configure China mainland mirrors (Aliyun)
-RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
-    && sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources
+# Optional China mainland mirrors for local builds:
+# docker build --build-arg USE_CHINA_MIRRORS=true .
+RUN if [ "$USE_CHINA_MIRRORS" = "true" ]; then \
+        sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources \
+        && sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list.d/debian.sources; \
+    fi
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -31,10 +38,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies (use Aliyun PyPI mirror)
-RUN pip install --no-cache-dir -r requirements.txt \
-    -i https://mirrors.aliyun.com/pypi/simple/ \
-    --trusted-host mirrors.aliyun.com
+# Install Python dependencies
+RUN if [ "$USE_CHINA_MIRRORS" = "true" ]; then \
+        pip install --no-cache-dir -r requirements.txt \
+            -i https://mirrors.aliyun.com/pypi/simple/ \
+            --trusted-host mirrors.aliyun.com; \
+    else \
+        pip install --no-cache-dir -r requirements.txt; \
+    fi
 
 # Copy application code
 COPY . .
@@ -45,6 +56,9 @@ RUN mkdir -p /app/data /app/logs
 # Expose ports
 # MCP Server: 9090, Admin Server: 9091
 EXPOSE 9090 9091
+
+# Override any entrypoint inherited from a custom base image.
+ENTRYPOINT []
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \

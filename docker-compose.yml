@@ -1,8 +1,12 @@
-version: '3.8'
-
 services:
   unimcpsim:
-    image: unimcpsim:latest
+    image: ${UNIMCPSIM_IMAGE:-ghcr.io/flagify-com/unimcpsim:latest}
+    build:
+      context: .
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.11-slim}
+        VERSION: ${UNIMCPSIM_VERSION:-local}
+        USE_CHINA_MIRRORS: ${USE_CHINA_MIRRORS:-false}
     container_name: unimcpsim
     restart: unless-stopped
     ports:
@@ -11,7 +15,9 @@ services:
     volumes:
       - ./data:/app/data          # 数据持久化
       - ./logs:/app/logs          # 日志持久化
-      - ./.env:/app/.env:ro       # 环境配置（只读）
+    env_file:
+      - path: ./.env              # 可选环境配置
+        required: false
     environment:
       - TZ=Asia/Shanghai
       - MCP_SERVER_PORT=9090
